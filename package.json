@@ -1,0 +1,101 @@
+{
+    "name": "vs-database",
+    "displayName": "vs-database",
+    "description": "",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.38.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onView:vsMysql",
+        "onView:vsRedis"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [{
+                "id": "vsDatabase",
+                "title": "vs Database",
+                "icon": "media/database.svg"
+            }]
+        },
+        "views": {
+            "vsDatabase": [{
+                    "id": "vsMysql",
+                    "name": "Mysql"
+                },
+                {
+                    "id": "vsRedis",
+                    "name": "Redis"
+                }
+            ]
+        },
+        "commands": [{
+                "command": "vsMysql.refreshEntry",
+                "title": "Refresh",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
+                }
+            },
+            {
+                "command": "vsMysql.addEntry",
+                "title": "Add",
+                "icon": {
+                    "light": "resources/light/add.svg",
+                    "dark": "resources/dark/add.svg"
+                }
+            },
+            {
+                "command": "vsMysql.editEntry",
+                "title": "Edit",
+                "icon": {
+                    "light": "resources/light/edit.svg",
+                    "dark": "resources/dark/edit.svg"
+                }
+            },
+            {
+                "command": "vsMysql.deleteEntry",
+                "title": "Delete"
+            }
+        ]
+    },
+    "menus": {
+        "view/title": [{
+            "command": "vsMysql.addEntry",
+            "when": "view == vsMysql",
+            "group": "navigation"
+        }],
+        "view/item/context": [{
+                "command": "vsMysql.editEntry",
+                "when": "view == vsMysql && viewItem == dependency",
+                "group": "inline"
+            },
+            {
+                "command": "vsMysql.deleteEntry",
+                "when": "view == vsMysql && viewItem == dependency"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.1",
+        "@types/mocha": "^5.2.6",
+        "@types/node": "^10.12.21",
+        "@types/vscode": "^1.38.0",
+        "glob": "^7.1.4",
+        "mocha": "^6.1.4",
+        "typescript": "^3.3.1",
+        "tslint": "^5.12.1",
+        "vscode-test": "^1.0.2"
+    }
+}
