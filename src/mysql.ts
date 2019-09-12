@@ -5,10 +5,10 @@ import * as config from './config';
 const VIEW_TITLE = 'vsMysql'
 
 export interface MysqlConnection {
-    readonly host: string;
-    readonly port: string;
-    readonly user: string;
-    readonly password?: string;
+    host: string;
+    port: string;
+    user: string;
+    password?: string;
 }
 
 export interface MysqlDatabase {
@@ -29,47 +29,107 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
+        this.connArr = []
         this._getConnConfig()
     }
 
     private _getConnConfig(): void {
-        let connStr: any = this.context.globalState.get('mysql');
-        connStr = `[{"host":"127.0.0.1","port":"3306","user":"root"},{"host":"127.0.0.2","port":"3306","user":"root"}]`
+        let connStr = config.getConfig(this.context, VIEW_TITLE)
         if (connStr) {
             this.connArr = JSON.parse(connStr)
-        } else {
-            this.connArr = []
         }
-        this.connArr = JSON.parse(connStr)
-        console.log(this.connArr)
     }
 
-    registerTreeDataProvider(): void {
+    registerTreeDataProvider = (): void => {
         vscode.window.registerTreeDataProvider(VIEW_TITLE, this);
     }
 
-    registerCommand(): void {
+    registerCommand = (): void => {
         vscode.commands.registerCommand(`${VIEW_TITLE}.collapseEntry`, this.collapseCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.addEntry`, this.addCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.editEntry`, this.editCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.deleteEntry`, this.deleteCallback);
     }
 
-    addCallback(): void {
-        vscode.window.showInformationMessage(`Successfully called add entry.`)
+    addCallback = (): void => {
+        let newConn: MysqlConnection = { host: "", port: "", user: "", password: "" }
+        let optionHost = {
+            password: false,
+            ignoreFocusOut: true,
+            placeHolder: 'HOST',
+            prompt: 'MySql hostname',
+            validateInput: function (text: string) {
+                if (!text) {
+                    return 'Please input mysql hostname';
+                }
+                return;
+            }
+        }
+        let optionPort = {
+            password: false,
+            ignoreFocusOut: true,
+            placeHolder: 'PORT',
+            prompt: 'MySql port',
+            validateInput: function (text: string) {
+                if (!text) {
+                    return 'Please input mysql port';
+                }
+                return;
+            }
+        }
+        let optionUser = {
+            password: false,
+            ignoreFocusOut: true,
+            placeHolder: 'USER',
+            prompt: 'MySql user',
+            validateInput: function (text: string) {
+                if (!text) {
+                    return 'Please input mysql user';
+                }
+                return;
+            }
+        }
+        let optionPassword = {
+            password: true,
+            ignoreFocusOut: true,
+            placeHolder: 'PASSWORD',
+            prompt: 'MySql password'
+        }
+        vscode.window.showInputBox(optionHost).then(value => {
+            let host: string = <string>value
+            newConn.host = host.trim()
+            vscode.window.showInputBox(optionPort).then(value => {
+                let port: string = <string>value
+                newConn.port = port.trim()
+
+                vscode.window.showInputBox(optionUser).then(value => {
+                    let user: string = <string>value
+                    newConn.user = user.trim()
+
+                    vscode.window.showInputBox(optionPassword).then(value => {
+                        let password: string = <string>value
+                        newConn.password = password.trim()
+                        // if conn
+                        this.connArr.push(newConn)
+                        config.setConfig(this.context, VIEW_TITLE, this.connArr)
+                        this.refresh()
+                    })
+                })
+            })
+        })
     }
-    editCallback(): void {
+    editCallback = (): void => {
         vscode.window.showInformationMessage(`Successfully called edit entry.`)
     }
-    deleteCallback(): void {
+    deleteCallback = (): void => {
         vscode.window.showInformationMessage(`Successfully called delete entry.`)
     }
-    collapseCallback(): void {
+    collapseCallback = (): void => {
         vscode.window.showInformationMessage(`Successfully called collapse entry.`)
     }
 
-    refresh(): void {
-        this._onDidChangeTreeData.fire();
+    refresh = (): void => {
+        this._onDidChangeTreeData.fire()
     }
 
     getTreeItem(element: Dependency): vscode.TreeItem {

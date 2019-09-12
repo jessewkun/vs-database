@@ -6,7 +6,6 @@ import { RedisProvider } from './redis';
 export function activate(context: vscode.ExtensionContext) {
 
     config.initLog()
-    config.log.appendLine('wkwk')
 
     const mysqlProvider = new MysqlProvider(context);
     mysqlProvider.registerTreeDataProvider()
