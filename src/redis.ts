@@ -1,27 +1,8 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
+import * as config from './config';
 
-
-const TYPE_MYSQL = 1
-const TYPE_REDIS = 2
-const TYPE_DATABASE = 3
-const TYPE_TABLE = 4
-
-export interface MysqlConnection {
-    readonly host: string;
-    readonly port: string;
-    readonly user: string;
-    readonly password?: string;
-}
-
-export interface MysqlDatabase {
-    readonly name: string;
-}
-
-export interface MysqlTable {
-    readonly name: string;
-}
+const VIEW_TITLE = 'vsRedis'
 
 interface RedisConnection {
     readonly host: string;
@@ -29,7 +10,7 @@ interface RedisConnection {
     readonly password?: string;
 }
 
-export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
+export class RedisProvider implements vscode.TreeDataProvider<Dependency> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<Dependency | undefined> = new vscode.EventEmitter<Dependency | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Dependency | undefined> = this._onDidChangeTreeData.event;
@@ -38,6 +19,30 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
+    }
+
+    registerTreeDataProvider(): void {
+        vscode.window.registerTreeDataProvider(VIEW_TITLE, this);
+    }
+
+    registerCommand(): void {
+        vscode.commands.registerCommand(`${VIEW_TITLE}.collapseEntry`, this.collapseCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.addEntry`, this.addCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.editEntry`, this.editCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.deleteEntry`, this.deleteCallback);
+    }
+
+    addCallback(): void {
+        vscode.window.showInformationMessage(`Successfully called add entry.`)
+    }
+    editCallback(): void {
+        vscode.window.showInformationMessage(`Successfully called edit entry.`)
+    }
+    deleteCallback(): void {
+        vscode.window.showInformationMessage(`Successfully called delete entry.`)
+    }
+    collapseCallback(): void {
+        vscode.window.showInformationMessage(`Successfully called collapse entry.`)
     }
 
     refresh(): void {
@@ -52,10 +57,10 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     getChildren(element?: Dependency): Thenable<Dependency[]> {
         if (element) {
             switch (element.type) {
-                case TYPE_MYSQL:
+                case config.TYPE_REDIS:
                     return this._database(element)
-                case TYPE_DATABASE:
-                    return this._table(element)
+                case config.TYPE_DATABASE:
+                    return this._keys(element)
                 default:
                     return Promise.resolve([]);
             }
@@ -64,12 +69,12 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         }
     }
 
-    private _toDep(type: number, obj: MysqlConnection): Dependency
+    private _toDep(type: number, obj: RedisConnection): Dependency
     private _toDep(type: number, obj: string): Dependency
-    private _toDep(type: number, obj: MysqlConnection | string): Dependency {
+    private _toDep(type: number, obj: RedisConnection | string): Dependency {
         if (typeof obj == "string") {
-            if (type == TYPE_TABLE) {
-                return new Dependency(obj, type);
+            if (type == config.TYPE_KEY) {
+                return new Dependency(obj, type, vscode.TreeItemCollapsibleState.None);
             }
             return new Dependency(obj, type, vscode.TreeItemCollapsibleState.Collapsed);
         } else {
@@ -80,9 +85,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     private _conn = (): Thenable<Dependency[]> => {
         // let connArrStr: any = this.context.globalState.get('mysql');
-        let mysqlconnArr: Array<MysqlConnection> = [{ host: '127.0.0.1', port: "3306", 'user': "root" }, { host: '127.0.0.2', port: "3306", 'user': "root" }]
+        let mysqlconnArr: Array<RedisConnection> = [{ host: '127.0.0.1', port: "3306" }, { host: '127.0.0.2', port: "3306" }]
         if (mysqlconnArr) {
-            return Promise.resolve(mysqlconnArr.map(conn => this._toDep(TYPE_MYSQL, conn)))
+            return Promise.resolve(mysqlconnArr.map(conn => this._toDep(config.TYPE_REDIS, conn)))
         }
         return Promise.resolve([]);
     }
@@ -92,17 +97,17 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         // let tableArr: any = element
         let dbArr: Array<string> = ['oea', 'campaign']
         if (dbArr) {
-            return Promise.resolve(dbArr.map(db => this._toDep(TYPE_DATABASE, db)))
+            return Promise.resolve(dbArr.map(db => this._toDep(config.TYPE_DATABASE, db)))
         } else {
             return Promise.resolve([]);
         }
     }
 
-    private _table = (element: Dependency): Thenable<Dependency[]> => {
-        // let tableArr: any = element
-        let tableArr: Array<string> = ['user', 'tags']
-        if (tableArr) {
-            return Promise.resolve(tableArr.map(table => this._toDep(TYPE_TABLE, table)))
+    private _keys = (element: Dependency): Thenable<Dependency[]> => {
+        // let keysArr: any = element
+        let keysArr: Array<string> = ['user', 'tags']
+        if (keysArr) {
+            return Promise.resolve(keysArr.map(key => this._toDep(config.TYPE_KEY, key)))
         } else {
             return Promise.resolve([]);
         }
@@ -114,7 +119,7 @@ export class Dependency extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly type: number,
-        public readonly collapsibleState?: vscode.TreeItemCollapsibleState,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
         public readonly command?: vscode.Command
     ) {
         super(label, collapsibleState);
@@ -128,15 +133,14 @@ export class Dependency extends vscode.TreeItem {
     public getIcon() {
         let icon = ""
         switch (this.type) {
-            case TYPE_MYSQL:
-            case TYPE_REDIS:
+            case config.TYPE_REDIS:
                 icon = 'conn.svg'
                 break;
-            case TYPE_DATABASE:
+            case config.TYPE_DATABASE:
                 icon = 'db.svg'
                 break;
-            case TYPE_TABLE:
-                icon = 'table.svg'
+            case config.TYPE_KEY:
+                icon = 'item.svg'
                 break;
         }
         return {

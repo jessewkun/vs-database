@@ -1,17 +1,18 @@
 import * as vscode from 'vscode';
-import { MysqlProvider } from './database';
+import { MysqlProvider } from './mysql';
+import { RedisProvider } from './redis';
 
 export function activate(context: vscode.ExtensionContext) {
 
     // let log = vscode.window.createOutputChannel("vsDatabase");
 
     const mysqlProvider = new MysqlProvider(context);
-    vscode.window.registerTreeDataProvider('vsMysql', mysqlProvider);
-    vscode.commands.registerCommand('vsMysql.refreshEntry', () => vscode.window.showInformationMessage(`Successfully called refresh entry.`));
-    vscode.commands.registerCommand('vsMysql.collapseEntry', () => vscode.window.showInformationMessage(`Successfully called collapse entry.`));
-    vscode.commands.registerCommand('vsMysql.addEntry', () => vscode.window.showInformationMessage(`Successfully called add entry.`));
-    vscode.commands.registerCommand('vsMysql.editEntry', () => vscode.window.showInformationMessage(`Successfully called edit entry`));
-    vscode.commands.registerCommand('vsMysql.deleteEntry', () => vscode.window.showInformationMessage(`Successfully called delete entry`));
+    mysqlProvider.registerTreeDataProvider()
+    mysqlProvider.registerCommand()
+
+    const redisProvider = new RedisProvider(context);
+    redisProvider.registerTreeDataProvider()
+    redisProvider.registerCommand()
 
 
     // context.globalState.update('conn', [1, 2, 3])

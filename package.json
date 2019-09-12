@@ -49,14 +49,6 @@
                 }
             },
             {
-                "command": "vsMysql.refreshEntry",
-                "title": "Refresh",
-                "icon": {
-                    "light": "resources/light/refresh.svg",
-                    "dark": "resources/dark/refresh.svg"
-                }
-            },
-            {
                 "command": "vsMysql.editEntry",
                 "title": "Edit",
                 "icon": {
@@ -66,6 +58,32 @@
             },
             {
                 "command": "vsMysql.deleteEntry",
+                "title": "Delete"
+            }, {
+                "command": "vsRedis.addEntry",
+                "title": "Add",
+                "icon": {
+                    "light": "resources/light/add.svg",
+                    "dark": "resources/dark/add.svg"
+                }
+            }, {
+                "command": "vsRedis.collapseEntry",
+                "title": "Collapse",
+                "icon": {
+                    "light": "resources/light/collapse-all.svg",
+                    "dark": "resources/dark/collapse-all.svg"
+                }
+            },
+            {
+                "command": "vsRedis.editEntry",
+                "title": "Edit",
+                "icon": {
+                    "light": "resources/light/edit.svg",
+                    "dark": "resources/dark/edit.svg"
+                }
+            },
+            {
+                "command": "vsRedis.deleteEntry",
                 "title": "Delete"
             }
         ],
@@ -79,6 +97,16 @@
                     "command": "vsMysql.collapseEntry",
                     "when": "view == vsMysql",
                     "group": "navigation"
+                },
+                {
+                    "command": "vsRedis.addEntry",
+                    "when": "view == vsRedis",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsRedis.collapseEntry",
+                    "when": "view == vsRedis",
+                    "group": "navigation"
                 }
             ],
             "view/item/context": [{
@@ -89,6 +117,15 @@
                 {
                     "command": "vsMysql.deleteEntry",
                     "when": "view == vsMysql && viewItem == dependency"
+                },
+                {
+                    "command": "vsRedis.editEntry",
+                    "when": "view == vsRedis && viewItem == dependency",
+                    "group": "inline"
+                },
+                {
+                    "command": "vsRedis.deleteEntry",
+                    "when": "view == vsRedis && viewItem == dependency"
                 }
             ]
         }
