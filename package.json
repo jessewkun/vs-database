@@ -111,21 +111,26 @@
             ],
             "view/item/context": [{
                     "command": "vsMysql.editEntry",
-                    "when": "view == vsMysql && viewItem == dependency",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
+                    "group": "inline"
+                },
+                {
+                    "command": "vsMysql.editEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "inline"
                 },
                 {
                     "command": "vsMysql.deleteEntry",
-                    "when": "view == vsMysql && viewItem == dependency"
+                    "when": "view == vsMysql"
                 },
                 {
                     "command": "vsRedis.editEntry",
-                    "when": "view == vsRedis && viewItem == dependency",
+                    "when": "view == vsRedis && viewItem == Dependency2",
                     "group": "inline"
                 },
                 {
                     "command": "vsRedis.deleteEntry",
-                    "when": "view == vsRedis && viewItem == dependency"
+                    "when": "view == vsRedis && viewItem == Dependency"
                 }
             ]
         }

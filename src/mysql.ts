@@ -133,7 +133,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     getTreeItem(element: Dependency): vscode.TreeItem {
-        element.iconPath = element.getIcon();
+        element.setIcon();
         return element;
     }
 
@@ -204,18 +204,12 @@ export class Dependency extends vscode.TreeItem {
         public readonly command?: vscode.Command
     ) {
         super(label, collapsibleState);
-        this.type = type
     }
 
-    get tooltip(): string {
-        return `${this.type}`;
-    }
-
-    public getIcon() {
+    public setIcon() {
         let icon = ""
         switch (this.type) {
             case config.TYPE_MYSQL:
-            case config.TYPE_REDIS:
                 icon = 'conn.svg'
                 break;
             case config.TYPE_DATABASE:
@@ -225,11 +219,21 @@ export class Dependency extends vscode.TreeItem {
                 icon = 'table.svg'
                 break;
         }
-        return {
+        this.iconPath = {
             light: path.join(__filename, '..', '..', 'resources', 'light', icon),
             dark: path.join(__filename, '..', '..', 'resources', 'dark', icon)
         }
     }
 
-    contextValue = 'Dependency';
+    get contextValue(): string {
+        switch (this.type) {
+            case config.TYPE_MYSQL:
+                return 'DependencyMySqlConn'
+            case config.TYPE_DATABASE:
+                return 'DependencyMySqlDatabase'
+            case config.TYPE_TABLE:
+                return 'DependencyMySqlTable'
+        }
+        return ""
+    }
 }
