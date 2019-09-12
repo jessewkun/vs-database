@@ -47,7 +47,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     registerCommand = (): void => {
         vscode.commands.registerCommand(`${VIEW_TITLE}.collapseEntry`, this.collapseCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.addEntry`, this.addCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.editEntry`, this.editCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.showCreateEntry`, this.showCreateCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.renameEntry`, this.renameCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.truncateEntry`, this.truncateCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.deleteEntry`, this.deleteCallback);
     }
 
@@ -118,8 +120,14 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             })
         })
     }
-    editCallback = (): void => {
-        vscode.window.showInformationMessage(`Successfully called edit entry.`)
+    showCreateCallback = (): void => {
+        vscode.window.showInformationMessage(`Successfully called showCreate entry.`)
+    }
+    renameCallback = (): void => {
+        vscode.window.showInformationMessage(`Successfully called rename entry.`)
+    }
+    truncateCallback = (): void => {
+        vscode.window.showInformationMessage(`Successfully called truncate entry.`)
     }
     deleteCallback = (): void => {
         vscode.window.showInformationMessage(`Successfully called delete entry.`)

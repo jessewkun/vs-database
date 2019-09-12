@@ -40,7 +40,8 @@
                     "light": "resources/light/add.svg",
                     "dark": "resources/dark/add.svg"
                 }
-            }, {
+            },
+            {
                 "command": "vsMysql.collapseEntry",
                 "title": "Collapse",
                 "icon": {
@@ -49,17 +50,22 @@
                 }
             },
             {
-                "command": "vsMysql.editEntry",
-                "title": "Edit",
-                "icon": {
-                    "light": "resources/light/edit.svg",
-                    "dark": "resources/dark/edit.svg"
-                }
+                "command": "vsMysql.showCreateEntry",
+                "title": "Show Create Table"
+            },
+            {
+                "command": "vsMysql.renameEntry",
+                "title": "Rename"
+            },
+            {
+                "command": "vsMysql.truncateEntry",
+                "title": "Truncate"
             },
             {
                 "command": "vsMysql.deleteEntry",
                 "title": "Delete"
-            }, {
+            },
+            {
                 "command": "vsRedis.addEntry",
                 "title": "Add",
                 "icon": {
@@ -76,11 +82,7 @@
             },
             {
                 "command": "vsRedis.editEntry",
-                "title": "Edit",
-                "icon": {
-                    "light": "resources/light/edit.svg",
-                    "dark": "resources/dark/edit.svg"
-                }
+                "title": "Edit"
             },
             {
                 "command": "vsRedis.deleteEntry",
@@ -110,18 +112,29 @@
                 }
             ],
             "view/item/context": [{
-                    "command": "vsMysql.editEntry",
-                    "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
-                    "group": "inline"
+                    "command": "vsMysql.showCreateEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlTable",
+                    "group": "navigation"
                 },
                 {
-                    "command": "vsMysql.editEntry",
+                    "command": "vsMysql.renameEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
+                    "group": "1_modification"
+                },
+                {
+                    "command": "vsMysql.renameEntry",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
-                    "group": "inline"
+                    "group": "1_modification"
+                },
+                {
+                    "command": "vsMysql.truncateEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlTable",
+                    "group": "1_modification"
                 },
                 {
                     "command": "vsMysql.deleteEntry",
-                    "when": "view == vsMysql"
+                    "when": "view == vsMysql",
+                    "group": "1_modification"
                 },
                 {
                     "command": "vsRedis.editEntry",
