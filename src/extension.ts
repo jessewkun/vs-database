@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
+import * as config from './config';
 import { MysqlProvider } from './mysql';
 import { RedisProvider } from './redis';
 
 export function activate(context: vscode.ExtensionContext) {
 
-    // let log = vscode.window.createOutputChannel("vsDatabase");
+    config.initLog()
+    config.log.appendLine('wkwk')
 
     const mysqlProvider = new MysqlProvider(context);
     mysqlProvider.registerTreeDataProvider()
@@ -20,13 +22,6 @@ export function activate(context: vscode.ExtensionContext) {
     // log.appendLine("--------------");
     // log.appendLine(<string>connArr);
     // log.appendLine(<string>vscode.workspace.rootPath);
-
-
-    let disposable = vscode.commands.registerCommand('extension.helloWorld', () => {
-        vscode.window.showInformationMessage('Hello World!');
-    });
-
-    context.subscriptions.push(disposable);
 }
 
 export function deactivate() { }

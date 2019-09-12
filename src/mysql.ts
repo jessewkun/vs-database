@@ -25,9 +25,23 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     readonly onDidChangeTreeData: vscode.Event<Dependency | undefined> = this._onDidChangeTreeData.event;
 
     public context: vscode.ExtensionContext
+    public connArr: Array<MysqlConnection>
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
+        this._getConnConfig()
+    }
+
+    private _getConnConfig(): void {
+        let connStr: any = this.context.globalState.get('mysql');
+        connStr = `[{"host":"127.0.0.1","port":"3306","user":"root"},{"host":"127.0.0.2","port":"3306","user":"root"}]`
+        if (connStr) {
+            this.connArr = JSON.parse(connStr)
+        } else {
+            this.connArr = []
+        }
+        this.connArr = JSON.parse(connStr)
+        console.log(this.connArr)
     }
 
     registerTreeDataProvider(): void {
@@ -93,10 +107,8 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     private _conn = (): Thenable<Dependency[]> => {
-        // let connArrStr: any = this.context.globalState.get('mysql');
-        let mysqlconnArr: Array<MysqlConnection> = [{ host: '127.0.0.1', port: "3306", 'user': "root" }, { host: '127.0.0.2', port: "3306", 'user': "root" }]
-        if (mysqlconnArr) {
-            return Promise.resolve(mysqlconnArr.map(conn => this._toDep(config.TYPE_MYSQL, conn)))
+        if (this.connArr) {
+            return Promise.resolve(this.connArr.map(conn => this._toDep(config.TYPE_MYSQL, conn)))
         }
         return Promise.resolve([]);
     }
