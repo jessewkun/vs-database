@@ -34,19 +34,26 @@
             ]
         },
         "commands": [{
-                "command": "vsMysql.refreshEntry",
-                "title": "Refresh",
-                "icon": {
-                    "light": "resources/light/refresh.svg",
-                    "dark": "resources/dark/refresh.svg"
-                }
-            },
-            {
                 "command": "vsMysql.addEntry",
                 "title": "Add",
                 "icon": {
                     "light": "resources/light/add.svg",
                     "dark": "resources/dark/add.svg"
+                }
+            }, {
+                "command": "vsMysql.collapseEntry",
+                "title": "Collapse",
+                "icon": {
+                    "light": "resources/light/collapse-all.svg",
+                    "dark": "resources/dark/collapse-all.svg"
+                }
+            },
+            {
+                "command": "vsMysql.refreshEntry",
+                "title": "Refresh",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
                 }
             },
             {
@@ -61,24 +68,30 @@
                 "command": "vsMysql.deleteEntry",
                 "title": "Delete"
             }
-        ]
-    },
-    "menus": {
-        "view/title": [{
-            "command": "vsMysql.addEntry",
-            "when": "view == vsMysql",
-            "group": "navigation"
-        }],
-        "view/item/context": [{
-                "command": "vsMysql.editEntry",
-                "when": "view == vsMysql && viewItem == dependency",
-                "group": "inline"
-            },
-            {
-                "command": "vsMysql.deleteEntry",
-                "when": "view == vsMysql && viewItem == dependency"
-            }
-        ]
+        ],
+        "menus": {
+            "view/title": [{
+                    "command": "vsMysql.addEntry",
+                    "when": "view == vsMysql",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsMysql.collapseEntry",
+                    "when": "view == vsMysql",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [{
+                    "command": "vsMysql.editEntry",
+                    "when": "view == vsMysql && viewItem == dependency",
+                    "group": "inline"
+                },
+                {
+                    "command": "vsMysql.deleteEntry",
+                    "when": "view == vsMysql && viewItem == dependency"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",

@@ -5,9 +5,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     // let log = vscode.window.createOutputChannel("vsDatabase");
 
-    const mysqlProvider = new MysqlProvider(context, '/Users/wangkun/localhost/javascript/vs-database');
+    const mysqlProvider = new MysqlProvider(context);
     vscode.window.registerTreeDataProvider('vsMysql', mysqlProvider);
     vscode.commands.registerCommand('vsMysql.refreshEntry', () => vscode.window.showInformationMessage(`Successfully called refresh entry.`));
+    vscode.commands.registerCommand('vsMysql.collapseEntry', () => vscode.window.showInformationMessage(`Successfully called collapse entry.`));
     vscode.commands.registerCommand('vsMysql.addEntry', () => vscode.window.showInformationMessage(`Successfully called add entry.`));
     vscode.commands.registerCommand('vsMysql.editEntry', () => vscode.window.showInformationMessage(`Successfully called edit entry`));
     vscode.commands.registerCommand('vsMysql.deleteEntry', () => vscode.window.showInformationMessage(`Successfully called delete entry`));

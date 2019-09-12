@@ -34,11 +34,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     private _onDidChangeTreeData: vscode.EventEmitter<Dependency | undefined> = new vscode.EventEmitter<Dependency | undefined>();
     readonly onDidChangeTreeData: vscode.Event<Dependency | undefined> = this._onDidChangeTreeData.event;
 
-    private workspaceRoot: string
     public context: vscode.ExtensionContext
 
-    constructor(context: vscode.ExtensionContext, workspaceRoot: string) {
-        this.workspaceRoot = workspaceRoot
+    constructor(context: vscode.ExtensionContext) {
         this.context = context
     }
 
