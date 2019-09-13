@@ -28,9 +28,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     private _getConnConfig(): void {
-        let connStr = config.getConfig(this.context, VIEW_TITLE)
-        if (connStr) {
-            this.connArr = JSON.parse(connStr)
+        let connArr = config.getConfig<Array<MysqlInfo>>(this.context, VIEW_TITLE)
+        if (connArr) {
+            this.connArr = connArr
         }
     }
 
@@ -194,7 +194,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     private _conn = (): Thenable<Dependency[]> => {
-        if (this.connArr) {
+        if (this.connArr.length > 0) {
             return Promise.resolve(this.connArr.map(conn => this._toDep(config.TYPE_MYSQL, undefined, conn)))
         }
         return Promise.resolve([]);

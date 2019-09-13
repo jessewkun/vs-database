@@ -12,13 +12,10 @@ export function initLog(): void {
     log = vscode.window.createOutputChannel("vsDatabase");
 }
 
-export function getConfig(context: vscode.ExtensionContext, key: string): string {
-    return <string>context.globalState.get(key);
+export function getConfig<T>(context: vscode.ExtensionContext, key: string): T | undefined {
+    return context.globalState.get(key);
 }
 
 export function setConfig(context: vscode.ExtensionContext, key: string, value: any): void {
-    if (typeof value != "string") {
-        value = JSON.stringify(value)
-    }
     context.globalState.update(key, value)
 }
