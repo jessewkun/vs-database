@@ -4,19 +4,13 @@ import * as config from './config';
 
 const VIEW_TITLE = 'vsMysql'
 
-export interface MysqlConnection {
+export interface MysqlInfo {
     host: string;
     port: string;
     user: string;
     password?: string;
-}
-
-export interface MysqlDatabase {
-    readonly name: string;
-}
-
-export interface MysqlTable {
-    readonly name: string;
+    db?: string;
+    table?: string
 }
 
 export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
@@ -25,7 +19,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     readonly onDidChangeTreeData: vscode.Event<Dependency | undefined> = this._onDidChangeTreeData.event;
 
     public context: vscode.ExtensionContext
-    public connArr: Array<MysqlConnection>
+    public connArr: Array<MysqlInfo>
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
@@ -54,7 +48,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     addCallback = (): void => {
-        let newConn: MysqlConnection = { host: "", port: "", user: "", password: "" }
+        let newConn: MysqlInfo = { host: "", port: "", user: "" }
         let optionHost = {
             password: false,
             ignoreFocusOut: true,
@@ -120,7 +114,11 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             })
         })
     }
-    showCreateCallback = (): void => {
+    showCreateCallback = (node: Dependency): void => {
+        if (node.type != config.TYPE_TABLE) {
+            return
+        }
+        // show create table
         vscode.window.showInformationMessage(`Successfully called showCreate entry.`)
     }
     renameCallback = (): void => {
@@ -129,8 +127,29 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     truncateCallback = (): void => {
         vscode.window.showInformationMessage(`Successfully called truncate entry.`)
     }
-    deleteCallback = (): void => {
-        vscode.window.showInformationMessage(`Successfully called delete entry.`)
+    deleteCallback = (node: Dependency): void => {
+        switch (node.type) {
+            case config.TYPE_MYSQL:
+                this.connArr.forEach((element, index) => {
+                    if (node.isEqualElement(element)) {
+                        this.connArr.splice(index, 1)
+                        config.setConfig(this.context, VIEW_TITLE, this.connArr)
+                        this.refresh()
+                        vscode.window.showInformationMessage(`Successfully deleted the Mysql`)
+                        return
+                    }
+                    vscode.window.showErrorMessage('Failed to delete the MySql')
+                });
+                break;
+            case config.TYPE_DATABASE:
+                // delete database
+                break;
+            case config.TYPE_TABLE:
+                // delete table
+                break;
+            default:
+                return;
+        }
     }
     collapseCallback = (): void => {
         vscode.window.showInformationMessage(`Successfully called collapse entry.`)
@@ -160,33 +179,40 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         }
     }
 
-    private _toDep(type: number, obj: MysqlConnection): Dependency
-    private _toDep(type: number, obj: string): Dependency
-    private _toDep(type: number, obj: MysqlConnection | string): Dependency {
-        if (typeof obj == "string") {
-            if (type == config.TYPE_TABLE) {
-                return new Dependency(obj, type, vscode.TreeItemCollapsibleState.None);
-            }
-            return new Dependency(obj, type, vscode.TreeItemCollapsibleState.Collapsed);
+    private _toDep(type: number, parent: Dependency | undefined, info: MysqlInfo): Dependency {
+        let label = ""
+        let CollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
+        if (info.table) {
+            label = info.table
+            CollapsibleState = vscode.TreeItemCollapsibleState.None
+        } else if (info.db) {
+            label = info.db
         } else {
-            let label: string = `${obj.host}:${obj.port}`
-            return new Dependency(label, type, vscode.TreeItemCollapsibleState.Collapsed);
+            label = `${info.host}:${info.port}`
         }
+        return new Dependency(label, type, parent, info, CollapsibleState);
     }
 
     private _conn = (): Thenable<Dependency[]> => {
         if (this.connArr) {
-            return Promise.resolve(this.connArr.map(conn => this._toDep(config.TYPE_MYSQL, conn)))
+            return Promise.resolve(this.connArr.map(conn => this._toDep(config.TYPE_MYSQL, undefined, conn)))
         }
         return Promise.resolve([]);
     }
-
 
     private _database = (element: Dependency): Thenable<Dependency[]> => {
         // let tableArr: any = element
         let dbArr: Array<string> = ['oea', 'campaign']
         if (dbArr) {
-            return Promise.resolve(dbArr.map(db => this._toDep(config.TYPE_DATABASE, db)))
+            let dbObjArr: Array<MysqlInfo> = []
+            let info = Object.assign({}, element.info);
+            dbArr.forEach(db => {
+                info.db = db
+                dbObjArr.push(info)
+            });
+            return Promise.resolve(dbObjArr.map(db =>
+                this._toDep(config.TYPE_DATABASE, element, db)
+            ))
         } else {
             return Promise.resolve([]);
         }
@@ -196,7 +222,13 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         // let tableArr: any = element
         let tableArr: Array<string> = ['user', 'tags']
         if (tableArr) {
-            return Promise.resolve(tableArr.map(table => this._toDep(config.TYPE_TABLE, table)))
+            let tableObjArr: Array<MysqlInfo> = []
+            let info = Object.assign({}, element.info);
+            tableArr.forEach(table => {
+                info.table = table
+                tableObjArr.push(info)
+            });
+            return Promise.resolve(tableObjArr.map(table => this._toDep(config.TYPE_TABLE, element, table)))
         } else {
             return Promise.resolve([]);
         }
@@ -208,10 +240,25 @@ export class Dependency extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly type: number,
+        public parent: Dependency | undefined,
+        public info: MysqlInfo,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
         public readonly command?: vscode.Command
     ) {
         super(label, collapsibleState);
+    }
+
+    public isEqualElement(element: MysqlInfo): boolean {
+        switch (this.type) {
+            case config.TYPE_MYSQL:
+                return element.host == this.info.host && element.port == this.info.port
+            case config.TYPE_DATABASE:
+                return this.info.db == element.db
+            case config.TYPE_TABLE:
+                return this.info.table == element.table
+            default:
+                return false;
+        }
     }
 
     public setIcon() {
