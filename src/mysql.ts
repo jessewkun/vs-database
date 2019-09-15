@@ -176,11 +176,16 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                 return;
         }
     }
+
+    // 查了下扩展貌似不支持折叠，TODO
     collapseCallback = (): void => {
+        this.connMap.forEach(conn => {
+            conn.collapse = vscode.TreeItemCollapsibleState.Collapsed
+        })
+        this.refresh()
         vscode.window.showInformationMessage(`Successfully called collapse entry.`)
     }
 
-    // 指定节点刷新不起作用 TODO
     refresh = (node?: Dependency): void => {
         if (node) {
             this._onDidChangeTreeData.fire(node)
@@ -211,17 +216,17 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     private _toDep(type: number, parent: Dependency | undefined, info: MysqlInfo): Dependency {
         let label = ""
-        let CollapsibleState = vscode.TreeItemCollapsibleState.Collapsed
+        let state = vscode.TreeItemCollapsibleState.Collapsed
         if (info.table) {
             label = info.table
-            CollapsibleState = vscode.TreeItemCollapsibleState.None
+            state = vscode.TreeItemCollapsibleState.None
         } else if (info.db) {
             label = info.db
         } else {
             label = `${info.host}:${info.port}`
         }
         let children = new Map()
-        return new Dependency(label, type, info, parent, children, CollapsibleState);
+        return new Dependency(label, type, info, parent, children, state);
     }
 
     private _conn = (): Thenable<Dependency[]> => {
@@ -238,7 +243,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     private _database = (element: Dependency): Thenable<Dependency[]> => {
-        // let tableArr: any = element
+        // let tableArr: any = element // todo
         if (this.dbArr) {
             let info = Object.assign({}, element.info);
             this.dbArr.forEach(db => {
@@ -253,7 +258,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     private _table = (element: Dependency): Thenable<Dependency[]> => {
-        // let tableArr: any = element
+        // let tableArr: any = element // todo
         if (this.tableArr) {
             let info = Object.assign({}, element.info);
             this.tableArr.forEach(table => {
@@ -276,23 +281,14 @@ export class Dependency extends vscode.TreeItem {
         public info: MysqlInfo,
         public parent: Dependency | undefined,
         public children: Map<string, Dependency>,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public collapsibleState: vscode.TreeItemCollapsibleState,
         public readonly command?: vscode.Command
     ) {
         super(label, collapsibleState);
     }
 
-    public isEqualElement(element: MysqlInfo): boolean {
-        switch (this.type) {
-            case config.TYPE_MYSQL:
-                return element.host == this.info.host && element.port == this.info.port
-            case config.TYPE_DATABASE:
-                return this.info.db == element.db
-            case config.TYPE_TABLE:
-                return this.info.table == element.table
-            default:
-                return false;
-        }
+    set collapse(state: vscode.TreeItemCollapsibleState) {
+        this.collapsibleState = state
     }
 
     public setIcon() {
