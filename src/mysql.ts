@@ -162,7 +162,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                 }
                 node.parent.children.delete(node.label)
                 this.dbArr.pop()
-                this.refresh()
+                this.refresh(node.parent)
                 break;
             case config.TYPE_TABLE:
                 if (!(node.parent instanceof Dependency)) {
@@ -170,7 +170,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                 }
                 node.parent.children.delete(node.label)
                 this.tableArr.pop()
-                this.refresh()
+                this.refresh(node.parent)
                 break;
             default:
                 return;
@@ -181,8 +181,12 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     // 指定节点刷新不起作用 TODO
-    refresh = (): void => {
-        this._onDidChangeTreeData.fire()
+    refresh = (node?: Dependency): void => {
+        if (node) {
+            this._onDidChangeTreeData.fire(node)
+        } else {
+            this._onDidChangeTreeData.fire()
+        }
     }
 
     getTreeItem(element: Dependency): vscode.TreeItem {
