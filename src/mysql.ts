@@ -19,18 +19,19 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     readonly onDidChangeTreeData: vscode.Event<Dependency | undefined> = this._onDidChangeTreeData.event;
 
     public context: vscode.ExtensionContext
-    public connArr: Array<MysqlInfo>
+    public connMap: Map<string, MysqlInfo>
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
-        this.connArr = []
+        this.connMap = new Map<string, MysqlInfo>()
         this._getConnConfig()
     }
 
     private _getConnConfig(): void {
-        let connArr = config.getConfig<Array<MysqlInfo>>(this.context, VIEW_TITLE)
-        if (connArr) {
-            this.connArr = connArr
+        let connMap = config.getConfig<Array<Array<any>>>(this.context, VIEW_TITLE)
+        if (connMap) {
+            let temp = connMap.map(x => [x[0], x[1]] as [string, MysqlInfo]);
+            this.connMap = new Map<string, MysqlInfo>(temp)
         }
     }
 
@@ -39,8 +40,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     registerCommand = (): void => {
-        vscode.commands.registerCommand(`${VIEW_TITLE}.collapseEntry`, this.collapseCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.addEntry`, this.addCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.collapseEntry`, this.collapseCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.deleteAllEntry`, this.deleteAllCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.showCreateEntry`, this.showCreateCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.renameEntry`, this.renameCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.truncateEntry`, this.truncateCallback);
@@ -106,12 +108,24 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                         let password: string = <string>value
                         newConn.password = password.trim()
                         // if conn
-                        this.connArr.push(newConn)
-                        config.setConfig(this.context, VIEW_TITLE, this.connArr)
+                        this.connMap.set(`${newConn.host}:${newConn.port}`, newConn)
+                        config.setConfig(this.context, VIEW_TITLE, [...this.connMap])
                         this.refresh()
                     })
                 })
             })
+        })
+    }
+    deleteAllCallback = (): void => {
+        const confirm = 'Confirm'
+        vscode.window.showWarningMessage('Are you sure you want to delete all MySql connection?', { modal: true }, confirm).then(value => {
+            if (value == confirm) {
+                if (this.connMap) {
+                    this.connMap.clear()
+                }
+                config.setConfig(this.context, VIEW_TITLE, [...this.connMap])
+                this.refresh()
+            }
         })
     }
     showCreateCallback = (node: Dependency): void => {
@@ -130,19 +144,17 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     deleteCallback = (node: Dependency): void => {
         switch (node.type) {
             case config.TYPE_MYSQL:
-                this.connArr.forEach((element, index) => {
-                    if (node.isEqualElement(element)) {
-                        this.connArr.splice(index, 1)
-                        config.setConfig(this.context, VIEW_TITLE, this.connArr)
-                        this.refresh()
-                        vscode.window.showInformationMessage(`Successfully deleted the Mysql`)
-                        return
-                    }
-                    vscode.window.showErrorMessage('Failed to delete the MySql')
-                });
-                break;
+                let lable = `${node.info.host}:${node.info.port}`
+                if (!this.connMap.has(lable)) {
+                    vscode.window.showErrorMessage('Failed to delete the MySql connection')
+                } else {
+                    this.connMap.delete(lable)
+                    config.setConfig(this.context, VIEW_TITLE, this.connMap)
+                    this.refresh()
+                    vscode.window.showInformationMessage(`Successfully deleted the Mysql connection`)
+                }
+                return
             case config.TYPE_DATABASE:
-                // delete database
                 break;
             case config.TYPE_TABLE:
                 // delete table
@@ -194,8 +206,8 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     }
 
     private _conn = (): Thenable<Dependency[]> => {
-        if (this.connArr.length > 0) {
-            return Promise.resolve(this.connArr.map(conn => this._toDep(config.TYPE_MYSQL, undefined, conn)))
+        if (this.connMap) {
+            return Promise.resolve([...this.connMap].map(([label, conn]) => this._toDep(config.TYPE_MYSQL, undefined, conn)))
         }
         return Promise.resolve([]);
     }

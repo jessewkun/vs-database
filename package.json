@@ -50,6 +50,14 @@
                 }
             },
             {
+                "command": "vsMysql.deleteAllEntry",
+                "title": "Delete All",
+                "icon": {
+                    "light": "resources/light/delete-all.svg",
+                    "dark": "resources/dark/delete-all.svg"
+                }
+            },
+            {
                 "command": "vsMysql.showCreateEntry",
                 "title": "Show Create Table"
             },
@@ -97,6 +105,11 @@
                 },
                 {
                     "command": "vsMysql.collapseEntry",
+                    "when": "view == vsMysql",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsMysql.deleteAllEntry",
                     "when": "view == vsMysql",
                     "group": "navigation"
                 },

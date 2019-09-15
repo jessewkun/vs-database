@@ -13,9 +13,10 @@ export function initLog(): void {
 }
 
 export function getConfig<T>(context: vscode.ExtensionContext, key: string): T | undefined {
-    return context.globalState.get(key);
+    return context.globalState.get<T>(key);
 }
 
+// value cannot be a map
 export function setConfig(context: vscode.ExtensionContext, key: string, value: any): void {
     context.globalState.update(key, value)
 }
