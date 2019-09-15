@@ -19,19 +19,21 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     readonly onDidChangeTreeData: vscode.Event<Dependency | undefined> = this._onDidChangeTreeData.event;
 
     public context: vscode.ExtensionContext
-    public connMap: Map<string, MysqlInfo>
+    public configMap: Map<string, MysqlInfo> = new Map()
+    public connMap: Map<string, Dependency> = new Map()
+    public dbArr: Array<string> = ['oea', 'campaign']
+    public tableArr: Array<string> = ['user', 'tags']
 
     constructor(context: vscode.ExtensionContext) {
         this.context = context
-        this.connMap = new Map<string, MysqlInfo>()
         this._getConnConfig()
     }
 
     private _getConnConfig(): void {
-        let connMap = config.getConfig<Array<Array<any>>>(this.context, VIEW_TITLE)
-        if (connMap) {
-            let temp = connMap.map(x => [x[0], x[1]] as [string, MysqlInfo]);
-            this.connMap = new Map<string, MysqlInfo>(temp)
+        let configMap = config.getConfig<Array<Array<any>>>(this.context, VIEW_TITLE)
+        if (configMap) {
+            let temp = configMap.map(x => [x[0], x[1]] as [string, MysqlInfo]);
+            this.configMap = new Map<string, MysqlInfo>(temp)
         }
     }
 
@@ -108,8 +110,8 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                         let password: string = <string>value
                         newConn.password = password.trim()
                         // if conn
-                        this.connMap.set(`${newConn.host}:${newConn.port}`, newConn)
-                        config.setConfig(this.context, VIEW_TITLE, [...this.connMap])
+                        this.configMap.set(`${newConn.host}:${newConn.port}`, newConn)
+                        config.setConfig(this.context, VIEW_TITLE, [...this.configMap])
                         this.refresh()
                     })
                 })
@@ -120,10 +122,10 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         const confirm = 'Confirm'
         vscode.window.showWarningMessage('Are you sure you want to delete all MySql connection?', { modal: true }, confirm).then(value => {
             if (value == confirm) {
-                if (this.connMap) {
-                    this.connMap.clear()
+                if (this.configMap) {
+                    this.configMap.clear()
                 }
-                config.setConfig(this.context, VIEW_TITLE, [...this.connMap])
+                config.setConfig(this.context, VIEW_TITLE, [...this.configMap])
                 this.refresh()
             }
         })
@@ -145,19 +147,30 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         switch (node.type) {
             case config.TYPE_MYSQL:
                 let lable = `${node.info.host}:${node.info.port}`
-                if (!this.connMap.has(lable)) {
+                if (!this.configMap.has(lable)) {
                     vscode.window.showErrorMessage('Failed to delete the MySql connection')
                 } else {
-                    this.connMap.delete(lable)
-                    config.setConfig(this.context, VIEW_TITLE, this.connMap)
+                    this.configMap.delete(lable)
+                    config.setConfig(this.context, VIEW_TITLE, this.configMap)
                     this.refresh()
                     vscode.window.showInformationMessage(`Successfully deleted the Mysql connection`)
                 }
                 return
             case config.TYPE_DATABASE:
+                if (!(node.parent instanceof Dependency)) {
+                    return
+                }
+                node.parent.children.delete(node.label)
+                this.dbArr.pop()
+                this.refresh()
                 break;
             case config.TYPE_TABLE:
-                // delete table
+                if (!(node.parent instanceof Dependency)) {
+                    return
+                }
+                node.parent.children.delete(node.label)
+                this.tableArr.pop()
+                this.refresh()
                 break;
             default:
                 return;
@@ -167,6 +180,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         vscode.window.showInformationMessage(`Successfully called collapse entry.`)
     }
 
+    // 指定节点刷新不起作用 TODO
     refresh = (): void => {
         this._onDidChangeTreeData.fire()
     }
@@ -202,29 +216,33 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         } else {
             label = `${info.host}:${info.port}`
         }
-        return new Dependency(label, type, parent, info, CollapsibleState);
+        let children = new Map()
+        return new Dependency(label, type, info, parent, children, CollapsibleState);
     }
 
     private _conn = (): Thenable<Dependency[]> => {
-        if (this.connMap) {
-            return Promise.resolve([...this.connMap].map(([label, conn]) => this._toDep(config.TYPE_MYSQL, undefined, conn)))
+        if (this.configMap) {
+            let res: Dependency[] = [];
+            [...this.configMap].forEach(([label, conn]) => {
+                let dep = this._toDep(config.TYPE_MYSQL, undefined, conn)
+                res.push(dep)
+                this.connMap.set(label, dep)
+            })
+            return Promise.resolve(res)
         }
         return Promise.resolve([]);
     }
 
     private _database = (element: Dependency): Thenable<Dependency[]> => {
         // let tableArr: any = element
-        let dbArr: Array<string> = ['oea', 'campaign']
-        if (dbArr) {
-            let dbObjArr: Array<MysqlInfo> = []
+        if (this.dbArr) {
             let info = Object.assign({}, element.info);
-            dbArr.forEach(db => {
+            this.dbArr.forEach(db => {
                 info.db = db
-                dbObjArr.push(info)
+                let dep = this._toDep(config.TYPE_DATABASE, element, info)
+                element.children.set(db, dep)
             });
-            return Promise.resolve(dbObjArr.map(db =>
-                this._toDep(config.TYPE_DATABASE, element, db)
-            ))
+            return Promise.resolve([...element.children.values()])
         } else {
             return Promise.resolve([]);
         }
@@ -232,15 +250,14 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     private _table = (element: Dependency): Thenable<Dependency[]> => {
         // let tableArr: any = element
-        let tableArr: Array<string> = ['user', 'tags']
-        if (tableArr) {
-            let tableObjArr: Array<MysqlInfo> = []
+        if (this.tableArr) {
             let info = Object.assign({}, element.info);
-            tableArr.forEach(table => {
+            this.tableArr.forEach(table => {
                 info.table = table
-                tableObjArr.push(info)
+                let dep = this._toDep(config.TYPE_TABLE, element, info)
+                element.children.set(table, dep)
             });
-            return Promise.resolve(tableObjArr.map(table => this._toDep(config.TYPE_TABLE, element, table)))
+            return Promise.resolve([...element.children.values()])
         } else {
             return Promise.resolve([]);
         }
@@ -252,8 +269,9 @@ export class Dependency extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly type: number,
-        public parent: Dependency | undefined,
         public info: MysqlInfo,
+        public parent: Dependency | undefined,
+        public children: Map<string, Dependency>,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
         public readonly command?: vscode.Command
     ) {
