@@ -43,6 +43,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     registerCommand = (): void => {
         vscode.commands.registerCommand(`${VIEW_TITLE}.addEntry`, this.addCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.refreshEntry`, this.refreshCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.collapseEntry`, this.collapseCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.deleteAllEntry`, this.deleteAllCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.showCreateEntry`, this.showCreateCallback);
@@ -117,6 +118,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                 })
             })
         })
+    }
+    refreshCallback = (): void => {
+        this.refresh()
     }
     deleteAllCallback = (): void => {
         const confirm = 'Confirm'

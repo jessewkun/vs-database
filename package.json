@@ -42,6 +42,14 @@
                 }
             },
             {
+                "command": "vsMysql.refreshEntry",
+                "title": "Refresh",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
+                }
+            },
+            {
                 "command": "vsMysql.collapseEntry",
                 "title": "Collapse",
                 "icon": {
@@ -80,7 +88,8 @@
                     "light": "resources/light/add.svg",
                     "dark": "resources/dark/add.svg"
                 }
-            }, {
+            },
+            {
                 "command": "vsRedis.collapseEntry",
                 "title": "Collapse",
                 "icon": {
@@ -100,6 +109,11 @@
         "menus": {
             "view/title": [{
                     "command": "vsMysql.addEntry",
+                    "when": "view == vsMysql",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsMysql.refreshEntry",
                     "when": "view == vsMysql",
                     "group": "navigation"
                 },
