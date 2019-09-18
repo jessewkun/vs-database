@@ -155,15 +155,17 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     deleteCallback = (node: Dependency): void => {
         switch (node.type) {
             case config.TYPE_MYSQL:
-                let lable = `${node.info.host}:${node.info.port}`
-                if (!this.configMap.has(lable)) {
-                    vscode.window.showErrorMessage('Failed to delete the MySql connection')
-                } else {
-                    this.configMap.delete(lable)
-                    config.setConfig(this.context, VIEW_TITLE, this.configMap)
-                    this.refresh()
-                    vscode.window.showInformationMessage(`Successfully deleted the Mysql connection`)
-                }
+                this._showConfirm(`Are you sure you want to drop connection "${node.label}" ?`, () => {
+                    let lable = `${node.info.host}:${node.info.port}`
+                    if (!this.configMap.has(lable)) {
+                        vscode.window.showErrorMessage('Failed to delete the MySql connection')
+                    } else {
+                        this.configMap.delete(lable)
+                        config.setConfig(this.context, VIEW_TITLE, this.configMap)
+                        this.refresh()
+                        vscode.window.showInformationMessage(`Successfully deleted the Mysql connection`)
+                    }
+                })
                 return
             case config.TYPE_DATABASE:
                 if (!(node.parent instanceof Dependency)) {
