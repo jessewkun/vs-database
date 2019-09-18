@@ -16,14 +16,17 @@
     "main": "./out/extension.js",
     "contributes": {
         "viewsContainers": {
-            "activitybar": [{
-                "id": "vsDatabase",
-                "title": "vs Database",
-                "icon": "media/database.svg"
-            }]
+            "activitybar": [
+                {
+                    "id": "vsDatabase",
+                    "title": "vs Database",
+                    "icon": "media/database.svg"
+                }
+            ]
         },
         "views": {
-            "vsDatabase": [{
+            "vsDatabase": [
+                {
                     "id": "vsMysql",
                     "name": "Mysql"
                 },
@@ -33,7 +36,8 @@
                 }
             ]
         },
-        "commands": [{
+        "commands": [
+            {
                 "command": "vsMysql.addEntry",
                 "title": "Add",
                 "icon": {
@@ -107,7 +111,8 @@
             }
         ],
         "menus": {
-            "view/title": [{
+            "view/title": [
+                {
                     "command": "vsMysql.addEntry",
                     "when": "view == vsMysql",
                     "group": "navigation"
@@ -138,7 +143,8 @@
                     "group": "navigation"
                 }
             ],
-            "view/item/context": [{
+            "view/item/context": [
+                {
                     "command": "vsMysql.showCreateEntry",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "navigation"
@@ -185,12 +191,17 @@
     "devDependencies": {
         "@types/glob": "^7.1.1",
         "@types/mocha": "^5.2.6",
+        "@types/mysql2": "github:types/mysql2",
         "@types/node": "^10.12.21",
         "@types/vscode": "^1.38.0",
         "glob": "^7.1.4",
         "mocha": "^6.1.4",
-        "typescript": "^3.3.1",
         "tslint": "^5.12.1",
+        "typescript": "^3.3.1",
         "vscode-test": "^1.0.2"
+    },
+    "dependencies": {
+        "@types/mysql": "^2.15.7",
+        "mysql2": "^1.7.0"
     }
 }
