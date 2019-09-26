@@ -16,17 +16,14 @@
     "main": "./out/extension.js",
     "contributes": {
         "viewsContainers": {
-            "activitybar": [
-                {
-                    "id": "vsDatabase",
-                    "title": "vs Database",
-                    "icon": "media/database.svg"
-                }
-            ]
+            "activitybar": [{
+                "id": "vsDatabase",
+                "title": "vs Database",
+                "icon": "media/database.svg"
+            }]
         },
         "views": {
-            "vsDatabase": [
-                {
+            "vsDatabase": [{
                     "id": "vsMysql",
                     "name": "Mysql"
                 },
@@ -36,8 +33,7 @@
                 }
             ]
         },
-        "commands": [
-            {
+        "commands": [{
                 "command": "vsMysql.addEntry",
                 "title": "Add",
                 "icon": {
@@ -86,6 +82,14 @@
                 "title": "Delete"
             },
             {
+                "command": "vsMysql.addDatabaseEntry",
+                "title": "Create Database"
+            },
+            {
+                "command": "vsMysql.addtableEntry",
+                "title": "Create table"
+            },
+            {
                 "command": "vsRedis.addEntry",
                 "title": "Add",
                 "icon": {
@@ -111,8 +115,7 @@
             }
         ],
         "menus": {
-            "view/title": [
-                {
+            "view/title": [{
                     "command": "vsMysql.addEntry",
                     "when": "view == vsMysql",
                     "group": "navigation"
@@ -143,8 +146,7 @@
                     "group": "navigation"
                 }
             ],
-            "view/item/context": [
-                {
+            "view/item/context": [{
                     "command": "vsMysql.showCreateEntry",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "navigation"
@@ -167,6 +169,16 @@
                 {
                     "command": "vsMysql.deleteEntry",
                     "when": "view == vsMysql",
+                    "group": "1_modification"
+                },
+                {
+                    "command": "vsMysql.addDatabaseEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlConn",
+                    "group": "1_modification"
+                },
+                {
+                    "command": "vsMysql.addtableEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
                     "group": "1_modification"
                 },
                 {

@@ -49,6 +49,8 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         vscode.commands.registerCommand(`${VIEW_TITLE}.renameEntry`, this.renameCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.truncateEntry`, this.truncateCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.deleteEntry`, this.deleteCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.addDatabaseEntry`, this.addDatabaseCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.addTableEntry`, this.addTableCallback);
     }
 
     private _showConfirm = (msg: string, fun: Function): void => {
@@ -190,6 +192,29 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             default:
                 return;
         }
+    }
+    addDatabaseCallback = (node: Dependency): void => {
+        let option = {
+            password: false,
+            ignoreFocusOut: true,
+            placeHolder: 'Database',
+            prompt: 'Database Name',
+            validateInput: function (text: string) {
+                if (!text) {
+                    return 'Please input database name';
+                }
+                return;
+            }
+        }
+        vscode.window.showInputBox(option).then(value => {
+            let database: string = <string>value
+            node.query(`create database ${database}`).then(() => {
+                this.refresh(node)
+            })
+        })
+    }
+    addTableCallback = (node: Dependency): void => {
+        // todo
     }
 
     // 查了下扩展貌似不支持折叠，TODO
