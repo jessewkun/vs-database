@@ -4,6 +4,8 @@ import * as config from './config';
 import * as mysql from "mysql2";
 
 const VIEW_TITLE = 'vsMysql'
+const EVENT_ITEM = 'itemClick'
+let webviewPanel: vscode.WebviewPanel | undefined;
 
 export interface MysqlInfo {
     host: string;
@@ -44,16 +46,24 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     // register command
     registerCommand = (): void => {
-        vscode.commands.registerCommand(`${VIEW_TITLE}.addEntry`, this.addCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.refreshEntry`, this.refreshCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.collapseEntry`, this.collapseCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.deleteAllEntry`, this.deleteAllCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.showCreateEntry`, this.showCreateCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.renameEntry`, this.renameCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.truncateEntry`, this.truncateCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.deleteEntry`, this.deleteCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.createDatabaseEntry`, this.createDatabaseCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.createTableEntry`, this.createTableCallback);
+        let commandMap: Map<string, (...args: any[]) => any> = new Map([
+            [`addEntry`, this.addCallback],
+            [`refreshEntry`, this.refreshCallback],
+            [`collapseEntry`, this.collapseCallback],
+            [`deleteAllEntry`, this.deleteAllCallback],
+            [`showCreateEntry`, this.showCreateCallback],
+            [`renameEntry`, this.renameCallback],
+            [`truncateEntry`, this.truncateCallback],
+            [`deleteEntry`, this.deleteCallback],
+            [`createDatabaseEntry`, this.createDatabaseCallback],
+            [`createTableEntry`, this.createTableCallback],
+            [EVENT_ITEM, this.clickItemCallback],
+        ])
+        for (var [key, func] of commandMap.entries()) {
+            this.context.subscriptions.push(
+                vscode.commands.registerCommand(`${VIEW_TITLE}.${key}`, func)
+            )
+        }
     }
 
     // show confirm
@@ -265,20 +275,29 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
 
     // create table
     createTableCallback = (node: Dependency): void => {
-        this.context.subscriptions.push(
-            vscode.commands.registerCommand(`${VIEW_TITLE}.openWebview`, function (uri) {
-                const panel = vscode.window.createWebviewPanel(
-                    'webview',
-                    "WebView演示",
-                    vscode.ViewColumn.One,
-                    {
-                        enableScripts: true,
-                        retainContextWhenHidden: true,
-                    }
-                );
-                panel.webview.html = `<html><body>你好，我是Webview</body></html>`
-            })
-        )
+        if (webviewPanel === undefined) {
+            webviewPanel = vscode.window.createWebviewPanel(
+                'webview',
+                "vs-Database",
+                vscode.ViewColumn.One,
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: true,
+                }
+            );
+            webviewPanel.webview.html = `<html><body>你好，我是Webview</body></html>`
+        } else {
+            webviewPanel.reveal();
+        }
+        webviewPanel.onDidDispose(() => {
+            webviewPanel = undefined;
+        });
+        this.context.subscriptions.push(webviewPanel);
+    }
+
+    // treeview item click callback
+    clickItemCallback = (node: Dependency): void => {
+        vscode.window.showInformationMessage(node.label)
     }
 
     // 查了下扩展貌似不支持折叠，TODO
@@ -392,9 +411,17 @@ export class Dependency extends vscode.TreeItem {
         public info: MysqlInfo,
         public parent: Dependency | undefined,
         public collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly command?: vscode.Command
     ) {
         super(label, collapsibleState);
+    }
+
+    command = {
+        title: this.label,
+        command: `${VIEW_TITLE}.${EVENT_ITEM}`,
+        tooltip: this.label,
+        arguments: [
+            this
+        ]
     }
 
     set collapse(state: vscode.TreeItemCollapsibleState) {
