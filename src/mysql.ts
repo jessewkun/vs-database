@@ -28,6 +28,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         this._getConnConfig()
     }
 
+    // get config from global state
     private _getConnConfig(): void {
         let configMap = config.getConfig<Array<Array<any>>>(this.context, VIEW_TITLE)
         if (configMap) {
@@ -36,10 +37,12 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         }
     }
 
+    // register provider
     registerTreeDataProvider = (): void => {
         vscode.window.registerTreeDataProvider(VIEW_TITLE, this);
     }
 
+    // register command
     registerCommand = (): void => {
         vscode.commands.registerCommand(`${VIEW_TITLE}.addEntry`, this.addCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.refreshEntry`, this.refreshCallback);
@@ -49,10 +52,11 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         vscode.commands.registerCommand(`${VIEW_TITLE}.renameEntry`, this.renameCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.truncateEntry`, this.truncateCallback);
         vscode.commands.registerCommand(`${VIEW_TITLE}.deleteEntry`, this.deleteCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.addDatabaseEntry`, this.addDatabaseCallback);
-        vscode.commands.registerCommand(`${VIEW_TITLE}.addTableEntry`, this.addTableCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.createDatabaseEntry`, this.createDatabaseCallback);
+        vscode.commands.registerCommand(`${VIEW_TITLE}.createTableEntry`, this.createTableCallback);
     }
 
+    // show confirm
     private _showConfirm = (msg: string, fun: Function): void => {
         const CONFIRM = 'confirm'
         vscode.window.showErrorMessage(msg, { modal: true }, CONFIRM).then((res) => {
@@ -62,6 +66,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         })
     }
 
+    // add connextion callback
     addCallback = (): void => {
         let newConn: MysqlInfo = { host: "", port: 0, user: "", conn: undefined }
         let optionHost = {
@@ -129,9 +134,13 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             })
         })
     }
+
+    // refresh tree view
     refreshCallback = (): void => {
         this.refresh()
     }
+
+    // delete all connection
     deleteAllCallback = (): void => {
         this._showConfirm(`Are you sure you want to delete all MySql connection?`, () => {
             if (this.configMap) {
@@ -141,19 +150,51 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             this.refresh()
         })
     }
+
+    // show create table todo
     showCreateCallback = (node: Dependency): void => {
         if (node.type != config.TYPE_TABLE) {
             return
         }
-        // show create table
         vscode.window.showInformationMessage(`Successfully called showCreate entry.`)
     }
-    renameCallback = (): void => {
-        vscode.window.showInformationMessage(`Successfully called rename entry.`)
+
+    // rename table
+    renameCallback = (node: Dependency): void => {
+        let option = {
+            password: false,
+            ignoreFocusOut: true,
+            placeHolder: 'Table Name',
+            prompt: 'Table Name',
+            validateInput: function (text: string) {
+                if (!text) {
+                    return 'Please input table name';
+                }
+                return;
+            }
+        }
+        vscode.window.showInputBox(option).then(value => {
+            let table: string = <string>value
+            node.query(`RENAME TABLE ${node.label} TO ${table}`).then(() => {
+                this.refresh(node.parent)
+            }).catch((e) => {
+                vscode.window.showErrorMessage(String(e))
+            })
+        })
     }
-    truncateCallback = (): void => {
-        vscode.window.showInformationMessage(`Successfully called truncate entry.`)
+
+    // truncate table
+    truncateCallback = (node: Dependency): void => {
+        this._showConfirm(`Are you sure you want to truncate table "${node.label}"?`, () => {
+            node.query(`truncate table ${node.label}`).then(() => {
+                vscode.window.showInformationMessage(`Truncate table success`)
+            }).catch((e) => {
+                vscode.window.showErrorMessage(String(e))
+            })
+        })
     }
+
+    // delete connection, drop database or drop table
     deleteCallback = (node: Dependency): void => {
         switch (node.type) {
             case config.TYPE_MYSQL:
@@ -176,6 +217,8 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                 this._showConfirm(`Are you sure you want to drop database "${node.label}" ?`, () => {
                     node.query(`drop database ${node.label}`).then(() => {
                         this.refresh(node.parent)
+                    }).catch((e) => {
+                        vscode.window.showErrorMessage(String(e))
                     })
                 })
                 break;
@@ -186,6 +229,8 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                 this._showConfirm(`Are you sure you want to drop table "${node.label}" ?`, () => {
                     node.query(`drop table ${node.label}`).then(() => {
                         this.refresh(node.parent)
+                    }).catch((e) => {
+                        vscode.window.showErrorMessage(String(e))
                     })
                 })
                 break;
@@ -193,7 +238,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                 return;
         }
     }
-    addDatabaseCallback = (node: Dependency): void => {
+
+    // create database
+    createDatabaseCallback = (node: Dependency): void => {
         let option = {
             password: false,
             ignoreFocusOut: true,
@@ -210,11 +257,28 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             let database: string = <string>value
             node.query(`create database ${database}`).then(() => {
                 this.refresh(node)
+            }).catch((e) => {
+                vscode.window.showErrorMessage(String(e))
             })
         })
     }
-    addTableCallback = (node: Dependency): void => {
-        // todo
+
+    // create table
+    createTableCallback = (node: Dependency): void => {
+        this.context.subscriptions.push(
+            vscode.commands.registerCommand(`${VIEW_TITLE}.openWebview`, function (uri) {
+                const panel = vscode.window.createWebviewPanel(
+                    'webview',
+                    "WebView演示",
+                    vscode.ViewColumn.One,
+                    {
+                        enableScripts: true,
+                        retainContextWhenHidden: true,
+                    }
+                );
+                panel.webview.html = `<html><body>你好，我是Webview</body></html>`
+            })
+        )
     }
 
     // 查了下扩展貌似不支持折叠，TODO

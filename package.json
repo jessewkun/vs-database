@@ -82,12 +82,16 @@
                 "title": "Delete"
             },
             {
-                "command": "vsMysql.addDatabaseEntry",
+                "command": "vsMysql.createDatabaseEntry",
                 "title": "Create Database"
             },
             {
-                "command": "vsMysql.addtableEntry",
+                "command": "vsMysql.createTableEntry",
                 "title": "Create table"
+            },
+            {
+                "command": "vsMysql.openWebview",
+                "title": "openWebview"
             },
             {
                 "command": "vsRedis.addEntry",
@@ -172,12 +176,12 @@
                     "group": "1_modification"
                 },
                 {
-                    "command": "vsMysql.addDatabaseEntry",
+                    "command": "vsMysql.createDatabaseEntry",
                     "when": "view == vsMysql && viewItem == DependencyMySqlConn",
                     "group": "1_modification"
                 },
                 {
-                    "command": "vsMysql.addtableEntry",
+                    "command": "vsMysql.createTableEntry",
                     "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
                     "group": "1_modification"
                 },
