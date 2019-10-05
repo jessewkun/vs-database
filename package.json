@@ -34,7 +34,7 @@
             ]
         },
         "commands": [{
-                "command": "vsMysql.addEntry",
+                "command": "vsMysql.addConnection",
                 "title": "Add",
                 "icon": {
                     "light": "resources/light/add.svg",
@@ -42,7 +42,7 @@
                 }
             },
             {
-                "command": "vsMysql.refreshEntry",
+                "command": "vsMysql.refreshConnection",
                 "title": "Refresh",
                 "icon": {
                     "light": "resources/light/refresh.svg",
@@ -50,7 +50,7 @@
                 }
             },
             {
-                "command": "vsMysql.collapseEntry",
+                "command": "vsMysql.collapseConnection",
                 "title": "Collapse",
                 "icon": {
                     "light": "resources/light/collapse-all.svg",
@@ -58,7 +58,7 @@
                 }
             },
             {
-                "command": "vsMysql.deleteAllEntry",
+                "command": "vsMysql.deleteAllConnection",
                 "title": "Delete All",
                 "icon": {
                     "light": "resources/light/delete-all.svg",
@@ -66,31 +66,39 @@
                 }
             },
             {
-                "command": "vsMysql.showCreateEntry",
+                "command": "vsMysql.exec",
+                "title": "Run current query",
+                "icon": {
+                    "light": "resources/light/run.svg",
+                    "dark": "resources/dark/run.svg"
+                }
+            },
+            {
+                "command": "vsMysql.showCreate",
                 "title": "Show Create Table"
             },
             {
-                "command": "vsMysql.statusEntry",
+                "command": "vsMysql.status",
                 "title": "Status"
             },
             {
-                "command": "vsMysql.renameEntry",
+                "command": "vsMysql.rename",
                 "title": "Rename"
             },
             {
-                "command": "vsMysql.truncateEntry",
+                "command": "vsMysql.truncate",
                 "title": "Truncate"
             },
             {
-                "command": "vsMysql.deleteEntry",
+                "command": "vsMysql.delete",
                 "title": "Delete"
             },
             {
-                "command": "vsMysql.createDatabaseEntry",
+                "command": "vsMysql.createDatabase",
                 "title": "Create Database"
             },
             {
-                "command": "vsMysql.createTableEntry",
+                "command": "vsMysql.createTable",
                 "title": "Create table"
             },
             {
@@ -122,24 +130,34 @@
                 "title": "Delete"
             }
         ],
+        "keybindings": [{
+            "command": "vsMysql.exec",
+            "key": "ctrl+r",
+            "mac": "cmd+r"
+        }],
         "menus": {
+            "editor/title": [{
+                "command": "vsMysql.exec",
+                "when": "view = vsMysql",
+                "group": "navigation"
+            }],
             "view/title": [{
-                    "command": "vsMysql.addEntry",
+                    "command": "vsMysql.addConnection",
                     "when": "view == vsMysql",
                     "group": "navigation"
                 },
                 {
-                    "command": "vsMysql.refreshEntry",
+                    "command": "vsMysql.refreshConnection",
                     "when": "view == vsMysql",
                     "group": "navigation"
                 },
                 {
-                    "command": "vsMysql.collapseEntry",
+                    "command": "vsMysql.collapseConnection",
                     "when": "view == vsMysql",
                     "group": "navigation"
                 },
                 {
-                    "command": "vsMysql.deleteAllEntry",
+                    "command": "vsMysql.deleteAllConnection",
                     "when": "view == vsMysql",
                     "group": "navigation"
                 },
@@ -155,42 +173,42 @@
                 }
             ],
             "view/item/context": [{
-                    "command": "vsMysql.statusEntry",
+                    "command": "vsMysql.status",
                     "when": "view == vsMysql && viewItem == DependencyMySqlConn",
                     "group": "navigation"
                 },
                 {
-                    "command": "vsMysql.createDatabaseEntry",
+                    "command": "vsMysql.createDatabase",
                     "when": "view == vsMysql && viewItem == DependencyMySqlConn",
                     "group": "1_modification"
                 },
                 {
-                    "command": "vsMysql.showCreateEntry",
+                    "command": "vsMysql.showCreate",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "navigation"
                 },
                 {
-                    "command": "vsMysql.renameEntry",
+                    "command": "vsMysql.rename",
                     "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
                     "group": "1_modification"
                 },
                 {
-                    "command": "vsMysql.renameEntry",
+                    "command": "vsMysql.rename",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "1_modification"
                 },
                 {
-                    "command": "vsMysql.truncateEntry",
+                    "command": "vsMysql.truncate",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "1_modification"
                 },
                 {
-                    "command": "vsMysql.deleteEntry",
+                    "command": "vsMysql.delete",
                     "when": "view == vsMysql",
                     "group": "1_modification"
                 },
                 {
-                    "command": "vsMysql.createTableEntry",
+                    "command": "vsMysql.createTable",
                     "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
                     "group": "1_modification"
                 },

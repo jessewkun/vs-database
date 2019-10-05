@@ -1,20 +1,24 @@
 <html>
 <style>
   .body.vscode-light {
-    background: white;
-    color: #404452;
+    background: var(--vscode-editor-background);
+    color: var(--vscode-editor-foreground);
   }
 
   body.vscode-dark {
-    background: #252526;
-    color: white;
+    background: var(--vscode-editor-background);
+    color: var(--vscode-editor-foreground);
   }
 
   textarea {
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
     outline: none;
+    border: var(--vscode-input-border);
     resize: none;
     width: 99%;
     height: 100px;
+    font-size: var(--vscode-editor-font-size);
     margin: 10px auto;
   }
 
@@ -31,7 +35,7 @@
   table {
     border-collapse: separate;
     border-spacing: 0px 5px;
-    text-align: center;
+    text-align: left;
     table-layout: fixed;
     width: 98%;
   }
@@ -64,31 +68,53 @@
   window.addEventListener('message', e => {
     const data = e.data.data;
     const event = e.data.event;
-    console.log(data);
-    let navStr = data.node.user + '@' + data.node.host + ':' + data.node.port
-    if (data.node.db) {
-      navStr += ' > ' + data.node.db
+    if (data.node) {
+      let navStr = data.node.user + '@' + data.node.host + ':' + data.node.port
+      if (data.node.db) {
+        navStr += ' > ' + data.node.db
+      }
+      if (data.node.table) {
+        navStr += ' > ' + data.node.table
+      }
+      document.getElementById('headerNav').innerHTML = navStr
     }
-    if (data.node.table) {
-      navStr += ' > ' + data.node.table
-    }
-    document.getElementById('headerNav').innerHTML = navStr
     switch (event) {
       case 'createTable':
         break;
       case 'showCreate':
-        document.getElementById('result').innerHTML = data.table.replace(/↵  /g, "<br>")
+        document.getElementById('result').innerHTML = data.table.replace(/\n/g, "<br>")
         break;
       case 'desc':
-        document.getElementById('result').innerHTML = table(data.desc)
+        document.getElementById('result').innerHTML = tableDesc(data.desc)
         break;
+      case 'show':
+        document.getElementById('result').innerHTML = tableShow(data.show)
+        break;
+      case 'exec':
+        vscode.postMessage({
+          event: 'exec',
+          sql: document.getElementById('query').value
+        })
       default:
-        console.log(data);
+        document.getElementById('result').innerHTML = table(data)
         break;
     }
   })
 
-  function table(arr) {
+  function tableShow(arr) {
+    let table =
+      '<table><tr><th>Variable Name</th><th>Value</th></tr>';
+    for (let index = 0; index < arr.length; index++) {
+      table += '<tr>'
+      table += '<td>' + arr[index]['Variable_name'] + '</td>'
+      table += '<td>' + arr[index]['Value'] + '</td>'
+      table += '</tr>'
+    }
+    table += '</table>'
+    return table
+  }
+
+  function tableDesc(arr) {
     let table = '<table><tr><th>Field</th><th>Type</th><th>Null</th><th>Key</th><th>Default</th><th>Extra</th></tr>';
     for (let index = 0; index < arr.length; index++) {
       table += '<tr>'
@@ -101,8 +127,6 @@
       table += '</tr>'
     }
     table += '</table>'
-    console.log(table);
-
     return table
   }
 </script>
