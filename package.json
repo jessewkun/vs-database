@@ -70,6 +70,10 @@
                 "title": "Show Create Table"
             },
             {
+                "command": "vsMysql.statusEntry",
+                "title": "Status"
+            },
+            {
                 "command": "vsMysql.renameEntry",
                 "title": "Rename"
             },
@@ -151,6 +155,16 @@
                 }
             ],
             "view/item/context": [{
+                    "command": "vsMysql.statusEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlConn",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsMysql.createDatabaseEntry",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlConn",
+                    "group": "1_modification"
+                },
+                {
                     "command": "vsMysql.showCreateEntry",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "navigation"
@@ -173,11 +187,6 @@
                 {
                     "command": "vsMysql.deleteEntry",
                     "when": "view == vsMysql",
-                    "group": "1_modification"
-                },
-                {
-                    "command": "vsMysql.createDatabaseEntry",
-                    "when": "view == vsMysql && viewItem == DependencyMySqlConn",
                     "group": "1_modification"
                 },
                 {

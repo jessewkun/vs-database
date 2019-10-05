@@ -1,0 +1,108 @@
+<html>
+<style>
+  .body.vscode-light {
+    background: white;
+    color: #404452;
+  }
+
+  body.vscode-dark {
+    background: #252526;
+    color: white;
+  }
+
+  textarea {
+    outline: none;
+    resize: none;
+    width: 99%;
+    height: 100px;
+    margin: 10px auto;
+  }
+
+  #queryDiv {
+    margin-top: 20px;
+    min-height: 100px;
+  }
+
+  #resultDiv {
+    margin-top: 20px;
+    min-height: 100px;
+  }
+
+  table {
+    border-collapse: separate;
+    border-spacing: 0px 5px;
+    text-align: center;
+    table-layout: fixed;
+    width: 98%;
+  }
+</style>
+
+<body>
+  <div id="headerDiv">
+    <h3>MySQL</h3>
+    <h4 id="headerNav"></h4>
+  </div>
+
+  <div id="queryDiv">
+    <h3>Query</h3>
+    <textarea id="query"></textarea>
+  </div>
+
+  <div id="resultDiv">
+    <h3>Result</h3>
+    <div id="result">
+      <!-- <pre id="result">
+        </pre> -->
+    </div>
+  </div>
+</body>
+
+</html>
+<script>
+  const vscode = acquireVsCodeApi();
+
+  window.addEventListener('message', e => {
+    const data = e.data.data;
+    const event = e.data.event;
+    console.log(data);
+    let navStr = data.node.user + '@' + data.node.host + ':' + data.node.port
+    if (data.node.db) {
+      navStr += ' > ' + data.node.db
+    }
+    if (data.node.table) {
+      navStr += ' > ' + data.node.table
+    }
+    document.getElementById('headerNav').innerHTML = navStr
+    switch (event) {
+      case 'createTable':
+        break;
+      case 'showCreate':
+        document.getElementById('result').innerHTML = data.table.replace(/↵  /g, "<br>")
+        break;
+      case 'desc':
+        document.getElementById('result').innerHTML = table(data.desc)
+        break;
+      default:
+        console.log(data);
+        break;
+    }
+  })
+
+  function table(arr) {
+    let table = '<table><tr><th>Field</th><th>Type</th><th>Null</th><th>Key</th><th>Default</th><th>Extra</th></tr>';
+    for (let index = 0; index < arr.length; index++) {
+      table += '<tr>'
+      table += '<td>' + arr[index]['Field'] + '</td>'
+      table += '<td>' + arr[index]['Type'] + '</td>'
+      table += '<td>' + arr[index]['Null'] + '</td>'
+      table += '<td>' + arr[index]['Key'] + '</td>'
+      table += '<td>' + arr[index]['Default'] + '</td>'
+      table += '<td>' + arr[index]['Extra'] + '</td>'
+      table += '</tr>'
+    }
+    table += '</table>'
+    console.log(table);
+
+    return table
+  }
+</script>
