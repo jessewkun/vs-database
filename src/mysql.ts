@@ -6,6 +6,7 @@ import * as mysql from "mysql2";
 
 const VIEW_TITLE = 'vsMysql'
 const EVENT_ITEM = 'itemClick'
+const SYSTEM_TABLE = ['information_schema', 'performance_schema', 'mysql']
 let webviewPanel: vscode.WebviewPanel | undefined;
 let current: Dependency
 let outputFormat: string = 'normal' // todo
@@ -193,6 +194,16 @@ export class Dependency extends vscode.TreeItem {
                 return 'DependencyMySqlTable'
         }
         return ""
+    }
+
+    public isSystem(): boolean {
+        if (this.type == config.TYPE_DATABASE && SYSTEM_TABLE.indexOf(this.label) > -1) {
+            return true
+        }
+        if (this.type == config.TYPE_TABLE && this.parent != undefined && SYSTEM_TABLE.indexOf(this.parent.label) > -1) {
+            return true
+        }
+        return false
     }
 
     public async query<T extends mysql.RowDataPacket[][] | mysql.RowDataPacket[] | mysql.OkPacket | mysql.OkPacket[]>(sql: string, values?: any, usedb?: boolean): Promise<T> {
@@ -495,6 +506,14 @@ export class MysqlCommand {
 
     // rename table
     rename = (node: Dependency): void => {
+        if (node.isSystem()) {
+            if (node.type == config.TYPE_DATABASE) {
+                vscode.window.showErrorMessage('You can\'t rename this database')
+            } else {
+                vscode.window.showErrorMessage('You can\'t rename this table')
+            }
+            return
+        }
         let option = {
             password: false,
             ignoreFocusOut: true,
@@ -519,6 +538,10 @@ export class MysqlCommand {
 
     // truncate table
     truncate = (node: Dependency): void => {
+        if (node.isSystem()) {
+            vscode.window.showErrorMessage('You can\'t truncate this table')
+            return
+        }
         this._showConfirm(`Are you sure you want to truncate table "${node.label}"?`, () => {
             node.query(`truncate table ${node.label}`).then(() => {
                 vscode.window.showInformationMessage(`Truncate table success`)
@@ -548,6 +571,10 @@ export class MysqlCommand {
                 if (!(node.parent instanceof Dependency)) {
                     return
                 }
+                if (node.isSystem()) {
+                    vscode.window.showErrorMessage('You can\'t drop this database')
+                    return
+                }
                 this._showConfirm(`Are you sure you want to drop database "${node.label}" ?`, () => {
                     node.query(`drop database ${node.label}`, '', false).then(() => {
                         this.mysql.refresh(node.parent)
@@ -558,6 +585,10 @@ export class MysqlCommand {
                 break;
             case config.TYPE_TABLE:
                 if (!(node.parent instanceof Dependency)) {
+                    return
+                }
+                if (node.isSystem()) {
+                    vscode.window.showErrorMessage('You can\'t drop this table')
                     return
                 }
                 this._showConfirm(`Are you sure you want to drop table "${node.label}" ?`, () => {
@@ -599,8 +630,12 @@ export class MysqlCommand {
 
     // create table
     createTable = (node: Dependency): void => {
-        this._getView()
-        this._viewMessage('createTable', { 'node': node.info })
+        if (node.isSystem()) {
+            vscode.window.showErrorMessage('You can\'t create a table in this database')
+        } else {
+            this._getView()
+            this._viewMessage('createTable', { 'node': node.info })
+        }
     }
 
     // treeview item click callback todo click and expanded, it dosen't working
