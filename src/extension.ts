@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as config from './config';
-import { MysqlProvider } from './mysql';
+import { MysqlProvider, MysqlCommand } from './mysql';
 import { RedisProvider } from './redis';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -8,8 +8,9 @@ export function activate(context: vscode.ExtensionContext) {
     config.Logger.getInstance();
 
     const mysqlProvider = new MysqlProvider(context);
-    mysqlProvider.registerTreeDataProvider()
-    mysqlProvider.registerCommand()
+    mysqlProvider.init()
+    const mysqlCommand = new MysqlCommand(context, mysqlProvider);
+    mysqlCommand.init()
 
     const redisProvider = new RedisProvider(context);
     redisProvider.registerTreeDataProvider()
