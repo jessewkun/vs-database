@@ -507,11 +507,7 @@ export class MysqlCommand {
     // rename table
     rename = (node: Dependency): void => {
         if (node.isSystem()) {
-            if (node.type == config.TYPE_DATABASE) {
-                vscode.window.showErrorMessage('You can\'t rename this database')
-            } else {
-                vscode.window.showErrorMessage('You can\'t rename this table')
-            }
+            vscode.window.showErrorMessage('You can\'t rename this table')
             return
         }
         let option = {
@@ -527,12 +523,14 @@ export class MysqlCommand {
             }
         }
         vscode.window.showInputBox(option).then(value => {
-            let table: string = <string>value
-            node.query(`RENAME TABLE ${node.label} TO ${table}`).then(() => {
-                this.mysql.refresh(node.parent)
-            }).catch(e => {
-                vscode.window.showErrorMessage(String(e))
-            })
+            if (value) {
+                let table: string = <string>value
+                node.query(`RENAME TABLE ${node.label} TO ${table}`).then(() => {
+                    this.mysql.refresh(node.parent)
+                }).catch(e => {
+                    vscode.window.showErrorMessage(String(e))
+                })
+            }
         })
     }
 
@@ -619,12 +617,14 @@ export class MysqlCommand {
             }
         }
         vscode.window.showInputBox(option).then(value => {
-            let database: string = <string>value
-            node.query(`create database ${database}`, '', false).then(() => {
-                this.mysql.refresh(node)
-            }).catch(e => {
-                vscode.window.showErrorMessage(String(e))
-            })
+            if (value) {
+                let database: string = <string>value
+                node.query(`create database ${database}`, '', false).then(() => {
+                    this.mysql.refresh(node)
+                }).catch(e => {
+                    vscode.window.showErrorMessage(String(e))
+                })
+            }
         })
     }
 

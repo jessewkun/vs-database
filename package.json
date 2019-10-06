@@ -218,11 +218,6 @@
                 },
                 {
                     "command": "vsMysql.rename",
-                    "when": "view == vsMysql && viewItem == DependencyMySqlDatabase",
-                    "group": "1_modification"
-                },
-                {
-                    "command": "vsMysql.rename",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "1_modification"
                 },
