@@ -150,9 +150,6 @@
         }],
         "menus": {
             "editor/title": [{
-                "command": "vsMysql.table.exec"
-            }],
-            "editor/context": [{
                 "command": "vsMysql.table.exec",
                 "group": "navigation"
             }],
