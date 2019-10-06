@@ -10,8 +10,6 @@ let webviewPanel: vscode.WebviewPanel | undefined;
 let current: Dependency
 let outputFormat: string = 'normal' // todo
 
-// todo 确认各种mysql终端的sql查询
-
 export interface MysqlInfo {
     host: string;
     port: number;
@@ -58,6 +56,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             [`deleteAllConnection`, this.deleteAllConnection],
             [`exec`, this.execCallback],
             [`showCreate`, this.showCreate],
+            [`info`, this.info],
             [`status`, this.status],
             [`rename`, this.rename],
             [`truncate`, this.truncate],
@@ -225,6 +224,9 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
                         return;
                 }
             }, undefined, this.context.subscriptions);
+            webviewPanel.onDidChangeViewState(e => console.log(e)
+
+            )
             this.context.subscriptions.push(webviewPanel);
         }
         if (show) {
@@ -247,6 +249,19 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         node.query<mysql.RowDataPacket[]>(sql).then(res => {
             this._getView()
             this._viewMessage('showCreate', { 'node': node.info, 'table': res[0]['Create Table'] })
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
+    // info
+    info = (node: Dependency): void => {
+        let sql = `select * from information_schema.TABLES where TABLE_SCHEMA = '${node.info.db}' and TABLE_NAME = '${node.label}'`
+        console.log(sql);
+
+        node.query<mysql.RowDataPacket[]>(sql).then(res => {
+            this._getView()
+            this._viewMessage('info', { 'node': node.info, 'info': res })
         }).catch(e => {
             vscode.window.showErrorMessage(String(e))
         })
@@ -563,7 +578,7 @@ export class Dependency extends vscode.TreeItem {
                 if (err != null) {
                     reject(err)
                 } else {
-                    config.Logger.output(sql)
+                    config.Logger.output(`<${this.info.user}@${this.info.host}> ` + sql)
                     resolve(result)
                 }
             });

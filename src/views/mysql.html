@@ -68,6 +68,8 @@
   window.addEventListener('message', e => {
     const data = e.data.data;
     const event = e.data.event;
+    console.log(data);
+
     if (data.node) {
       let navStr = data.node.user + '@' + data.node.host + ':' + data.node.port
       if (data.node.db) {
@@ -95,8 +97,12 @@
           event: 'exec',
           sql: document.getElementById('query').value
         })
+        break;
+      case 'info':
+        document.getElementById('result').innerHTML = tableInfo(data.info)
+        break;
       default:
-        document.getElementById('result').innerHTML = table(data)
+        document.getElementById('result').innerHTML = String(data)
         break;
     }
   })
@@ -125,6 +131,15 @@
       table += '<td>' + arr[index]['Default'] + '</td>'
       table += '<td>' + arr[index]['Extra'] + '</td>'
       table += '</tr>'
+    }
+    table += '</table>'
+    return table
+  }
+
+  function tableInfo(arr) {
+    let table = '<table><tr><th>Field</th><th>Value</th></tr>';
+    for (const key in arr[0]) {
+      table += '<tr><td>' + key + '</td><td>' + arr[0][key] + '</td></tr>'
     }
     table += '</table>'
     return table

@@ -78,6 +78,10 @@
                 "title": "Show Create Table"
             },
             {
+                "command": "vsMysql.info",
+                "title": "Info"
+            },
+            {
                 "command": "vsMysql.status",
                 "title": "Status"
             },
@@ -137,8 +141,10 @@
         }],
         "menus": {
             "editor/title": [{
+                "command": "vsMysql.exec"
+            }],
+            "editor/context": [{
                 "command": "vsMysql.exec",
-                "when": "view = vsMysql",
                 "group": "navigation"
             }],
             "view/title": [{
@@ -184,6 +190,11 @@
                 },
                 {
                     "command": "vsMysql.showCreate",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlTable",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsMysql.info",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "navigation"
                 },
