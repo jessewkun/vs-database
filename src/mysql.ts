@@ -5,7 +5,7 @@ import * as utils from './utils';
 import * as mysql from "mysql2";
 
 const VIEW_TITLE = 'vsMysql'
-const EVENT_ITEM = 'itemClick'
+const EVENT_CLICK = 'click'
 const SYSTEM_TABLE = ['information_schema', 'performance_schema', 'mysql']
 let webviewPanel: vscode.WebviewPanel | undefined;
 let current: Dependency
@@ -154,7 +154,7 @@ export class Dependency extends vscode.TreeItem {
 
     command = {
         title: this.label,
-        command: `${VIEW_TITLE}.${EVENT_ITEM}`,
+        command: `${VIEW_TITLE}.common.${EVENT_CLICK}`,
         tooltip: this.label,
         arguments: [
             this
@@ -253,22 +253,26 @@ export class MysqlCommand {
 
     init() {
         let commandMap: Map<string, (...args: any[]) => any> = new Map([
-            [`addConnection`, this.addConnection],
-            [`refreshConnection`, this.refreshConnection],
-            [`collapseConnection`, this.collapseConnection],
-            [`deleteAllConnection`, this.deleteAllConnection],
-            [`exec`, this.exec],
-            [`showCreate`, this.showCreate],
-            [`info`, this.info],
-            [`status`, this.status],
-            [`index`, this.index],
-            [`showProcess`, this.showProcess],
-            [`rename`, this.rename],
-            [`truncate`, this.truncate],
-            [`delete`, this.delete],
-            [`createDatabase`, this.createDatabase],
-            [`createTable`, this.createTable],
-            [EVENT_ITEM, this.clickItem],
+            [`conn.add`, this.addConn],
+            [`conn.refresh`, this.refreshConn],
+            [`conn.collapse`, this.collapseConn],
+            [`conn.deleteAll`, this.deleteAllConn],
+
+            [`common.delete`, this.delete],
+            [`common.` + EVENT_CLICK, this.click],
+
+            [`conn.status`, this.status],
+            [`conn.showProcess`, this.showProcess],
+            [`conn.createDatabase`, this.createDatabase],
+
+            [`db.createTable`, this.createTable],
+
+            [`table.index`, this.index],
+            [`table.info`, this.info],
+            [`table.showCreate`, this.showCreate],
+            [`table.exec`, this.exec],
+            [`table.rename`, this.rename],
+            [`table.truncate`, this.truncate],
         ])
         for (var [key, func] of commandMap.entries()) {
             this.context.subscriptions.push(
@@ -352,7 +356,7 @@ export class MysqlCommand {
     }
 
     // add connection callback
-    addConnection = (): void => {
+    addConn = (): void => {
         let newConn: MysqlInfo = { host: "", port: 0, user: "", conn: undefined }
         let optionHost = {
             password: false,
@@ -421,131 +425,23 @@ export class MysqlCommand {
     }
 
     // refresh tree view
-    refreshConnection = (): void => {
+    refreshConn = (): void => {
+        this.mysql.refresh()
+    }
+
+    // 查了下扩展貌似不支持折叠，TODO
+    collapseConn = (): void => {
         this.mysql.refresh()
     }
 
     // delete all connection
-    deleteAllConnection = (): void => {
+    deleteAllConn = (): void => {
         this._showConfirm(`Are you sure you want to delete all MySql connection?`, () => {
             if (this.mysql.configMap) {
                 this.mysql.configMap.clear()
             }
             config.setConfig(this.context, VIEW_TITLE, [...this.mysql.configMap])
             this.mysql.refresh()
-        })
-    }
-
-    // exec
-    exec = (node: Dependency): void => {
-        this._viewMessage('exec')
-    }
-
-    // mysql status todo syntax error
-    status = (node: Dependency): void => {
-        // status 也不行
-        node.query("\\s", '', false).then(res => {
-            console.log(res);
-        }).catch(e => {
-            vscode.window.showErrorMessage(String(e))
-        })
-    }
-
-    // index
-    index = (node: Dependency): void => {
-        node.query<mysql.RowDataPacket[]>(`show index from ${node.label}`).then(res => {
-            this._getView()
-            this._viewMessage('index', { 'node': node.info, 'index': res })
-        }).catch(e => {
-            vscode.window.showErrorMessage(String(e))
-        })
-    }
-
-    // show full process
-    showProcess = (node: Dependency): void => {
-        node.query<mysql.RowDataPacket[]>("show full processlist", '', false).then(res => {
-            this._getView()
-            this._viewMessage('showProcess', { 'node': node.info, 'process': res })
-        }).catch(e => {
-            vscode.window.showErrorMessage(String(e))
-        })
-    }
-
-    // show create table todo
-    showCreate = (node: Dependency): void => {
-        let sql = `show create table ${node.label}`
-        node.query<mysql.RowDataPacket[]>(sql).then(res => {
-            this._getView()
-            this._viewMessage('showCreate', { 'node': node.info, 'table': res[0]['Create Table'] })
-        }).catch(e => {
-            vscode.window.showErrorMessage(String(e))
-        })
-    }
-
-    // info
-    info = (node: Dependency): void => {
-        let sql = `select * from information_schema.TABLES where TABLE_SCHEMA = '${node.info.db}' and TABLE_NAME = '${node.label}'`
-        node.query<mysql.RowDataPacket[]>(sql, '', false).then(res => {
-            this._getView()
-            this._viewMessage('info', { 'node': node.info, 'info': res })
-        }).catch(e => {
-            vscode.window.showErrorMessage(String(e))
-        })
-    }
-
-    // desc table
-    desc = (node: Dependency): void => {
-        let sql = `desc ${node.label}`
-        node.query<mysql.RowDataPacket[]>(sql).then(res => {
-            this._getView()
-            this._viewMessage('desc', { 'node': node.info, 'desc': res })
-        }).catch(e => {
-            vscode.window.showErrorMessage(String(e))
-        })
-    }
-
-    // rename table
-    rename = (node: Dependency): void => {
-        if (node.isSystem()) {
-            vscode.window.showErrorMessage('You can\'t rename this table')
-            return
-        }
-        let option = {
-            password: false,
-            ignoreFocusOut: true,
-            placeHolder: 'Table Name',
-            prompt: 'Table Name',
-            validateInput: function (text: string) {
-                if (!text) {
-                    return 'Please input table name';
-                }
-                return;
-            }
-        }
-        vscode.window.showInputBox(option).then(value => {
-            if (value) {
-                let table: string = <string>value
-                node.query(`RENAME TABLE ${node.label} TO ${table}`).then(() => {
-                    this.mysql.refresh(node.parent)
-                }).catch(e => {
-                    vscode.window.showErrorMessage(String(e))
-                })
-            }
-        })
-    }
-
-    // truncate table
-    truncate = (node: Dependency): void => {
-        if (node.isSystem()) {
-            vscode.window.showErrorMessage('You can\'t truncate this table')
-            return
-        }
-        this._showConfirm(`Are you sure you want to truncate table "${node.label}"?`, () => {
-            node.query(`truncate table ${node.label}`).then(() => {
-                vscode.window.showInformationMessage(`Truncate table success`)
-            }).catch((e) => {
-                vscode.window.showErrorMessage(String(e))
-            })
         })
     }
 
@@ -602,6 +498,36 @@ export class MysqlCommand {
         }
     }
 
+    // treeview item click callback todo click and expanded, it dosen't working
+    click = (node: Dependency): void => {
+        // node.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
+        // this.getChildren(node)
+        // vscode.window.showInformationMessage(node.label)
+        if (node.type == config.TYPE_TABLE) {
+            this.desc(node)
+        }
+    }
+
+    // mysql status todo syntax error
+    status = (node: Dependency): void => {
+        // status 也不行
+        node.query("\\s", '', false).then(res => {
+            console.log(res);
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
+    // show full process
+    showProcess = (node: Dependency): void => {
+        node.query<mysql.RowDataPacket[]>("show full processlist", '', false).then(res => {
+            this._getView()
+            this._viewMessage('showProcess', { 'node': node.info, 'process': res })
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
     // create database
     createDatabase = (node: Dependency): void => {
         let option = {
@@ -638,19 +564,97 @@ export class MysqlCommand {
         }
     }
 
-    // treeview item click callback todo click and expanded, it dosen't working
-    clickItem = (node: Dependency): void => {
-        // node.collapsibleState = vscode.TreeItemCollapsibleState.Expanded
-        // this.getChildren(node)
-        // vscode.window.showInformationMessage(node.label)
-        if (node.type == config.TYPE_TABLE) {
-            this.desc(node)
-        }
+    // index
+    index = (node: Dependency): void => {
+        node.query<mysql.RowDataPacket[]>(`show index from ${node.label}`).then(res => {
+            this._getView()
+            this._viewMessage('index', { 'node': node.info, 'index': res })
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
     }
 
-    // 查了下扩展貌似不支持折叠，TODO
-    collapseConnection = (): void => {
-        this.mysql.refresh()
+    // info
+    info = (node: Dependency): void => {
+        let sql = `select * from information_schema.TABLES where TABLE_SCHEMA = '${node.info.db}' and TABLE_NAME = '${node.label}'`
+        node.query<mysql.RowDataPacket[]>(sql, '', false).then(res => {
+            this._getView()
+            this._viewMessage('info', { 'node': node.info, 'info': res })
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
+    // show create table todo
+    showCreate = (node: Dependency): void => {
+        let sql = `show create table ${node.label}`
+        node.query<mysql.RowDataPacket[]>(sql).then(res => {
+            this._getView()
+            this._viewMessage('showCreate', { 'node': node.info, 'table': res[0]['Create Table'] })
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
+    // exec
+    exec = (node: Dependency): void => {
+        this._viewMessage('exec')
+    }
+
+    // desc table
+    desc = (node: Dependency): void => {
+        let sql = `desc ${node.label}`
+        node.query<mysql.RowDataPacket[]>(sql).then(res => {
+            this._getView()
+            this._viewMessage('desc', { 'node': node.info, 'desc': res })
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
+    // rename table
+    rename = (node: Dependency): void => {
+        if (node.isSystem()) {
+            vscode.window.showErrorMessage('You can\'t rename this table')
+            return
+        }
+        let option = {
+            password: false,
+            ignoreFocusOut: true,
+            placeHolder: 'Table Name',
+            prompt: 'Table Name',
+            validateInput: function (text: string) {
+                if (!text) {
+                    return 'Please input table name';
+                }
+                return;
+            }
+        }
+        vscode.window.showInputBox(option).then(value => {
+            if (value) {
+                let table: string = <string>value
+                node.query(`RENAME TABLE ${node.label} TO ${table}`).then(() => {
+                    this.mysql.refresh(node.parent)
+                }).catch(e => {
+                    vscode.window.showErrorMessage(String(e))
+                })
+            }
+        })
+    }
+
+    // truncate table
+    truncate = (node: Dependency): void => {
+        if (node.isSystem()) {
+            vscode.window.showErrorMessage('You can\'t truncate this table')
+            return
+        }
+        this._showConfirm(`Are you sure you want to truncate table "${node.label}"?`, () => {
+            node.query(`truncate table ${node.label}`).then(() => {
+                vscode.window.showInformationMessage(`Truncate table success`)
+            }).catch((e) => {
+                vscode.window.showErrorMessage(String(e))
+            })
+        })
     }
 
 }
