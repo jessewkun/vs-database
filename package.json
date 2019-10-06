@@ -86,6 +86,10 @@
                 "title": "Status"
             },
             {
+                "command": "vsMysql.showProcess",
+                "title": "Process"
+            },
+            {
                 "command": "vsMysql.rename",
                 "title": "Rename"
             },
@@ -180,6 +184,11 @@
             ],
             "view/item/context": [{
                     "command": "vsMysql.status",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlConn",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsMysql.showProcess",
                     "when": "view == vsMysql && viewItem == DependencyMySqlConn",
                     "group": "navigation"
                 },

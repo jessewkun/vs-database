@@ -92,6 +92,9 @@
       case 'show':
         document.getElementById('result').innerHTML = tableShow(data.show)
         break;
+      case 'showProcess':
+        document.getElementById('result').innerHTML = tableShowProcess(data.process)
+        break;
       case 'exec':
         vscode.postMessage({
           event: 'exec',
@@ -110,28 +113,47 @@
   function tableShow(arr) {
     let table =
       '<table><tr><th>Variable Name</th><th>Value</th></tr>';
-    for (let index = 0; index < arr.length; index++) {
+    arr.forEach(element => {
       table += '<tr>'
-      table += '<td>' + arr[index]['Variable_name'] + '</td>'
-      table += '<td>' + arr[index]['Value'] + '</td>'
+      table += '<td>' + element['Variable_name'] + '</td>'
+      table += '<td>' + element['Value'] + '</td>'
       table += '</tr>'
-    }
+    });
+    table += '</table>'
+    return table
+  }
+
+  function tableShowProcess(arr) {
+    let table =
+      '<table><tr><th>Id</th><th>User</th><th>Host</th><th>Db</th><th>Command</th><th>Time</th><th>State</th><th>Info</th></tr>';
+    arr.forEach(element => {
+      table += '<tr>'
+      table += '<td>' + element['Id'] + '</td>'
+      table += '<td>' + element['User'] + '</td>'
+      table += '<td>' + element['Host'] + '</td>'
+      table += '<td>' + element['db'] + '</td>'
+      table += '<td>' + element['Command'] + '</td>'
+      table += '<td>' + element['Time'] + '</td>'
+      table += '<td>' + element['State'] + '</td>'
+      table += '<td>' + element['Info'] + '</td>'
+      table += '</tr>'
+    });
     table += '</table>'
     return table
   }
 
   function tableDesc(arr) {
     let table = '<table><tr><th>Field</th><th>Type</th><th>Null</th><th>Key</th><th>Default</th><th>Extra</th></tr>';
-    for (let index = 0; index < arr.length; index++) {
+    arr.forEach(element => {
       table += '<tr>'
-      table += '<td>' + arr[index]['Field'] + '</td>'
-      table += '<td>' + arr[index]['Type'] + '</td>'
-      table += '<td>' + arr[index]['Null'] + '</td>'
-      table += '<td>' + arr[index]['Key'] + '</td>'
-      table += '<td>' + arr[index]['Default'] + '</td>'
-      table += '<td>' + arr[index]['Extra'] + '</td>'
+      table += '<td>' + element['Field'] + '</td>'
+      table += '<td>' + element['Type'] + '</td>'
+      table += '<td>' + element['Null'] + '</td>'
+      table += '<td>' + element['Key'] + '</td>'
+      table += '<td>' + element['Default'] + '</td>'
+      table += '<td>' + element['Extra'] + '</td>'
       table += '</tr>'
-    }
+    });
     table += '</table>'
     return table
   }

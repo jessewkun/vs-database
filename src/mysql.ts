@@ -58,6 +58,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             [`showCreate`, this.showCreate],
             [`info`, this.info],
             [`status`, this.status],
+            [`showProcess`, this.showProcess],
             [`rename`, this.rename],
             [`truncate`, this.truncate],
             [`delete`, this.delete],
@@ -201,6 +202,16 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         })
     }
 
+    // show full process
+    showProcess = (node: Dependency): void => {
+        node.query<mysql.RowDataPacket[]>("show full processlist", '', false).then(res => {
+            this._getView()
+            this._viewMessage('showProcess', { 'node': node.info, 'process': res })
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
     private _getView = (show: boolean = true): void => {
         if (webviewPanel === undefined) {
             webviewPanel = vscode.window.createWebviewPanel(
@@ -257,9 +268,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
     // info
     info = (node: Dependency): void => {
         let sql = `select * from information_schema.TABLES where TABLE_SCHEMA = '${node.info.db}' and TABLE_NAME = '${node.label}'`
-        console.log(sql);
-
-        node.query<mysql.RowDataPacket[]>(sql).then(res => {
+        node.query<mysql.RowDataPacket[]>(sql, '', false).then(res => {
             this._getView()
             this._viewMessage('info', { 'node': node.info, 'info': res })
         }).catch(e => {
