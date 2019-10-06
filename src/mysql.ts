@@ -58,6 +58,7 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
             [`showCreate`, this.showCreate],
             [`info`, this.info],
             [`status`, this.status],
+            [`index`, this.index],
             [`showProcess`, this.showProcess],
             [`rename`, this.rename],
             [`truncate`, this.truncate],
@@ -197,6 +198,16 @@ export class MysqlProvider implements vscode.TreeDataProvider<Dependency> {
         // status 也不行
         node.query("\\s", '', false).then(res => {
             console.log(res);
+        }).catch(e => {
+            vscode.window.showErrorMessage(String(e))
+        })
+    }
+
+    // index
+    index = (node: Dependency): void => {
+        node.query<mysql.RowDataPacket[]>(`show index from ${node.label}`).then(res => {
+            this._getView()
+            this._viewMessage('index', { 'node': node.info, 'index': res })
         }).catch(e => {
             vscode.window.showErrorMessage(String(e))
         })

@@ -86,6 +86,10 @@
                 "title": "Status"
             },
             {
+                "command": "vsMysql.index",
+                "title": "Index"
+            },
+            {
                 "command": "vsMysql.showProcess",
                 "title": "Process"
             },
@@ -204,6 +208,11 @@
                 },
                 {
                     "command": "vsMysql.info",
+                    "when": "view == vsMysql && viewItem == DependencyMySqlTable",
+                    "group": "navigation"
+                },
+                {
+                    "command": "vsMysql.index",
                     "when": "view == vsMysql && viewItem == DependencyMySqlTable",
                     "group": "navigation"
                 },

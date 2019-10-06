@@ -95,6 +95,9 @@
       case 'showProcess':
         document.getElementById('result').innerHTML = tableShowProcess(data.process)
         break;
+      case 'index':
+        document.getElementById('result').innerHTML = tableIndex(data.index)
+        break;
       case 'exec':
         vscode.postMessage({
           event: 'exec',
@@ -137,6 +140,20 @@
       table += '<td>' + element['State'] + '</td>'
       table += '<td>' + element['Info'] + '</td>'
       table += '</tr>'
+    });
+    table += '</table>'
+    return table
+  }
+
+  function tableIndex(arr) {
+    let table = '<table><tr><th>Field</th><th>Value</th></tr>';
+    arr.forEach((element, index) => {
+      let no = index + 1
+      table += '<tr><td colspan=2>***************************  ' + no +
+        '.  ***************************</td></tr>'
+      for (const key in element) {
+        table += '<tr><td>' + key + '</td><td>' + element[key] + '</td></tr>'
+      }
     });
     table += '</table>'
     return table
