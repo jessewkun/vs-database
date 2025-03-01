@@ -44,6 +44,27 @@ export class TableWebView {
     }
   }
 
+  private async refreshView() {
+    try {
+      const structure = await this.connection.getTableStructure(this.database, this.table);
+      const indexInfo = await this.connection.getTableIndexes(this.database, this.table);
+      const tableInfo = await this.connection.getTableInfo(this.database, this.table);
+
+      if (this.panel) {
+        this.panel.webview.html = this.getHtmlContent(
+          this.connection.connectionConfig.name,
+          this.database,
+          this.table,
+          structure,
+          indexInfo,
+          tableInfo
+        );
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to refresh view: ${error.message}`);
+    }
+  }
+
   async show() {
     try {
       this.checkConnection();
@@ -51,6 +72,7 @@ export class TableWebView {
 
       const structure = await this.connection.getTableStructure(this.database, this.table);
       const indexInfo = await this.connection.getTableIndexes(this.database, this.table);
+      const tableInfo = await this.connection.getTableInfo(this.database, this.table);
 
       const columnToShowIn = this.getNextViewColumn();
 
@@ -64,19 +86,64 @@ export class TableWebView {
         }
       );
 
-      // 在面板关闭时从映射中移除
-      this.panel.onDidDispose(() => {
-        const identifier = `${this.connection.connectionConfig.id}_${this.database}.${this.table}`;
-        TableWebView.viewMap.delete(identifier);
-        this.panel = undefined;
-      });
-
-      this.updateContent(structure, indexInfo);
+      this.panel.webview.html = this.getHtmlContent(
+        this.connection.connectionConfig.name,
+        this.database,
+        this.table,
+        structure,
+        indexInfo,
+        tableInfo
+      );
 
       this.panel.webview.onDidReceiveMessage(async message => {
         try {
           this.checkConnection();
           switch (message.command) {
+            case 'modifyEncoding':
+              const charset = await vscode.window.showQuickPick(
+                ['utf8mb4', 'utf8', 'latin1'],
+                { placeHolder: 'Select character set' }
+              );
+              if (charset) {
+                const collation = await vscode.window.showQuickPick(
+                  charset === 'utf8mb4' ? ['utf8mb4_unicode_ci', 'utf8mb4_general_ci'] :
+                    charset === 'utf8' ? ['utf8_unicode_ci', 'utf8_general_ci'] :
+                      ['latin1_swedish_ci'],
+                  { placeHolder: 'Select collation' }
+                );
+                if (collation) {
+                  await this.connection.modifyTableEncoding(this.database, this.table, charset, collation);
+                  await this.refreshView(); // 使用刷新方法
+                }
+              }
+              break;
+
+            case 'modifyComment':
+              const comment = await vscode.window.showInputBox({
+                prompt: 'Enter table comment',
+                value: tableInfo.comment || ''
+              });
+              if (comment !== undefined) {
+                await this.connection.modifyTableComment(this.database, this.table, comment);
+                await this.refreshView(); // 使用刷新方法
+              }
+              break;
+
+            case 'resetAutoIncrement':
+              const value = await vscode.window.showInputBox({
+                prompt: 'Enter new auto increment value',
+                value: '1',
+                validateInput: value => {
+                  return /^\d+$/.test(value) ? null : 'Please enter a valid number';
+                }
+              });
+              if (value) {
+                await this.connection.resetAutoIncrement(this.database, this.table, parseInt(value));
+                await this.refreshView(); // 使用刷新方法
+                vscode.window.showInformationMessage(`Auto increment value reset to ${value}`);
+              }
+              break;
+
             case 'executeQuery':
               try {
                 const results = await this.connection.executeQuery(message.sql);
@@ -97,6 +164,14 @@ export class TableWebView {
           vscode.window.showErrorMessage(`Operation failed: ${error.message}`);
         }
       });
+
+      // 处理面板关闭事件
+      this.panel.onDidDispose(() => {
+        const identifier = `${this.connection.connectionConfig.id}_${this.database}.${this.table}`;
+        TableWebView.viewMap.delete(identifier);
+        this.panel = undefined;
+      });
+
     } catch (error) {
       console.error('Error showing table:', error);
       vscode.window.showErrorMessage(`Failed to show table: ${error.message}`);
@@ -119,26 +194,20 @@ export class TableWebView {
     }
   }
 
-  private updateContent(columnInfo: any[], indexInfo: any[]) {
-    if (!this.panel) return;
-
-    this.panel.title = this.table;
-    this.panel.webview.html = this.getHtmlContent(
-      this.connection.connectionConfig.name,
-      this.database,
-      this.table,
-      columnInfo,
-      indexInfo
-    );
-  }
-
   private getHtmlContent(
     connectionName: string,
     database: string,
     table: string,
     columnInfo: any[],
-    indexInfo: any[]
+    indexInfo: any[],
+    tableInfo: any
   ): string {
+    // 添加日期格式化函数
+    const formatDateTime = (date: Date | string | null): string => {
+      if (!date) return 'N/A';
+      return new Date(date).toLocaleString();
+    };
+
     return `
             <!DOCTYPE html>
             <html>
@@ -378,6 +447,43 @@ export class TableWebView {
                         white-space: pre-wrap;
                         word-break: break-word;
                     }
+
+                    /* 添加表信息样式 */
+                    .table-info-grid {
+                        display: grid;
+                        grid-template-columns: 180px 1fr;
+                        gap: 8px;
+                        margin-bottom: 20px;
+                    }
+
+                    .table-info-label {
+                        font-weight: 500;
+                        color: var(--vscode-foreground);
+                        padding: 4px 8px;
+                    }
+
+                    .table-info-value {
+                        padding: 4px 8px;
+                    }
+
+                    .table-info-action {
+                        color: var(--vscode-textLink-foreground);
+                        cursor: pointer;
+                        margin-left: 8px;
+                    }
+
+                    .table-info-action:hover {
+                        text-decoration: underline;
+                    }
+
+                    .create-syntax {
+                        font-family: monospace;
+                        white-space: pre-wrap;
+                        padding: 12px;
+                        background-color: var(--vscode-editor-background);
+                        border: 1px solid var(--vscode-panel-border);
+                        margin-top: 12px;
+                    }
                 </style>
             </head>
             <body>
@@ -396,12 +502,64 @@ export class TableWebView {
 
                 <div class="tabs">
                     <div class="tab-buttons">
-                        <button class="tab-button active" onclick="showTab('structure')">Table Structure</button>
+                        <button class="tab-button active" onclick="showTab('table-info')">Table Info</button>
+                        <button class="tab-button" onclick="showTab('structure')">Table Structure</button>
                         <button class="tab-button" onclick="showTab('indexes')">Indexes</button>
                         <button class="tab-button" onclick="showTab('query-result')">Query Result</button>
                     </div>
 
-                    <div id="structure" class="tab-content active">
+                    <div id="table-info" class="tab-content active">
+                        <div class="table-info-grid">
+                            <div class="table-info-label">Type:</div>
+                            <div class="table-info-value">${tableInfo.engine || 'N/A'}</div>
+
+                            <div class="table-info-label">Encoding:</div>
+                            <div class="table-info-value">
+                                ${tableInfo.charset || 'N/A'}
+                                <span class="table-info-action" onclick="modifyEncoding()">Modify</span>
+                            </div>
+
+                            <div class="table-info-label">Created at:</div>
+                            <div class="table-info-value">${formatDateTime(tableInfo.create_time)}</div>
+
+                            <div class="table-info-label">Updated at:</div>
+                            <div class="table-info-value">${formatDateTime(tableInfo.update_time)}</div>
+
+                            <div class="table-info-label">Number of rows:</div>
+                            <div class="table-info-value">${tableInfo.rows || '0'}</div>
+
+                            <div class="table-info-label">Row format:</div>
+                            <div class="table-info-value">${tableInfo.row_format || 'N/A'}</div>
+
+                            <div class="table-info-label">Avg. row length:</div>
+                            <div class="table-info-value">${tableInfo.avg_row_length || '0'} B</div>
+
+                            <div class="table-info-label">Auto increment:</div>
+                            <div class="table-info-value">
+                                ${tableInfo.auto_increment || 'N/A'}
+                                ${tableInfo.auto_increment ?
+        `<span class="table-info-action" onclick="resetAutoIncrement()">Reset</span>` :
+        ''}
+                            </div>
+
+                            <div class="table-info-label">Data size:</div>
+                            <div class="table-info-value">${tableInfo.data_length || '0'} B</div>
+
+                            <div class="table-info-label">Max data size:</div>
+                            <div class="table-info-value">${tableInfo.max_data_length || '0'} B</div>
+
+                            <div class="table-info-label">Index size:</div>
+                            <div class="table-info-value">${tableInfo.index_length || '0'} B</div>
+
+                            <div class="table-info-label">Free data size:</div>
+                            <div class="table-info-value">${tableInfo.data_free || '0'} B</div>
+                        </div>
+
+                        <h3>Create Table Syntax:</h3>
+                        <div class="create-syntax">${tableInfo.create_syntax || ''}</div>
+                    </div>
+
+                    <div id="structure" class="tab-content">
                         <table>
                             <thead>
                                 <tr>
@@ -572,6 +730,28 @@ export class TableWebView {
                         });
 
                         container.innerHTML = html;
+                    }
+
+                    function formatBytes(bytes) {
+                        if (!bytes || bytes === 0) return '0 B';
+                        const k = 1024;
+                        const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+                        const i = Math.floor(Math.log(bytes) / Math.log(k));
+                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                    }
+
+                    function modifyEncoding() {
+                        vscode.postMessage({
+                            command: 'modifyEncoding',
+                            table: '${table}'
+                        });
+                    }
+
+                    function resetAutoIncrement() {
+                        vscode.postMessage({
+                            command: 'resetAutoIncrement',
+                            table: '${table}'
+                        });
                     }
 
                     window.addEventListener('message', event => {

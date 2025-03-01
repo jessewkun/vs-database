@@ -365,4 +365,93 @@ export class MySQLConnection {
   get currentTable(): string | null {
     return this._currentTable;
   }
+
+  async getTableInfo(database: string, table: string): Promise<any> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+
+    try {
+      // 获取表信息
+      const [tableInfo] = await this.connection.query(`
+        SELECT
+            ENGINE as engine,
+            TABLE_COLLATION as collation,
+            CHARACTER_SET_NAME as charset,
+            CREATE_TIME as create_time,
+            UPDATE_TIME as update_time,
+            TABLE_ROWS as \`rows\`,
+            ROW_FORMAT as row_format,
+            AVG_ROW_LENGTH as avg_row_length,
+            AUTO_INCREMENT as auto_increment,
+            DATA_LENGTH as data_length,
+            MAX_DATA_LENGTH as max_data_length,
+            INDEX_LENGTH as index_length,
+            DATA_FREE as data_free
+        FROM information_schema.TABLES t
+        LEFT JOIN information_schema.COLLATION_CHARACTER_SET_APPLICABILITY csa
+            ON t.TABLE_COLLATION = csa.COLLATION_NAME
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
+      `, [database, table]);
+
+      // 获取建表语句
+      const [createSyntax] = await this.connection.query(`SHOW CREATE TABLE \`${database}\`.\`${table}\``);
+
+      return {
+        ...tableInfo[0],
+        create_syntax: createSyntax[0]['Create Table']
+      };
+    } catch (error) {
+      console.error('Get table info error:', error);
+      throw error;
+    }
+  }
+
+  async modifyTableEncoding(database: string, table: string, charset: string, collation: string): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+
+    try {
+      await this.connection.query(`
+        ALTER TABLE \`${database}\`.\`${table}\`
+        CONVERT TO CHARACTER SET ${charset} COLLATE ${collation}
+      `);
+    } catch (error) {
+      console.error('Modify table encoding error:', error);
+      throw error;
+    }
+  }
+
+  async modifyTableComment(database: string, table: string, comment: string): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+
+    try {
+      await this.connection.query(`
+        ALTER TABLE \`${database}\`.\`${table}\`
+        COMMENT = ?
+      `, [comment]);
+    } catch (error) {
+      console.error('Modify table comment error:', error);
+      throw error;
+    }
+  }
+
+  async resetAutoIncrement(database: string, table: string, value: number = 1): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+
+    try {
+      await this.connection.query(`
+        ALTER TABLE \`${database}\`.\`${table}\`
+        AUTO_INCREMENT = ?
+      `, [value]);
+    } catch (error) {
+      console.error('Reset auto increment error:', error);
+      throw error;
+    }
+  }
 }
