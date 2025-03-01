@@ -1,0 +1,193 @@
+{
+    "name": "mysql-manager",
+    "displayName": "MySQL Manager",
+    "description": "MySQL management extension for VS Code",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onView:mysqlExplorer",
+        "*"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "views": {
+            "explorer": [
+                {
+                    "id": "mysqlExplorer",
+                    "name": "MySQL Explorer"
+                }
+            ]
+        },
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "mysql-explorer",
+                    "title": "MySQL",
+                    "icon": "resources/database.svg"
+                }
+            ]
+        },
+        "views": {
+            "mysql-explorer": [
+                {
+                    "id": "mysqlExplorer",
+                    "name": "Connections"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "mysql-manager.addConnection",
+                "title": "Add Connection",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.refresh",
+                "title": "Refresh",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.deleteConnection",
+                "title": "Delete Connection",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.createDatabase",
+                "title": "Create Database",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.dropDatabase",
+                "title": "Drop Database",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.refreshTables",
+                "title": "Refresh Tables",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.reconnect",
+                "title": "Reconnect",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.retryConnection",
+                "title": "Retry Connection",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.renameTable",
+                "title": "Rename Table"
+            },
+            {
+                "command": "mysql-manager.duplicateTable",
+                "title": "Duplicate Table"
+            },
+            {
+                "command": "mysql-manager.truncateTable",
+                "title": "Truncate Table"
+            },
+            {
+                "command": "mysql-manager.deleteTable",
+                "title": "Delete Table"
+            },
+            {
+                "command": "mysql-manager.showCreateTable",
+                "title": "Show Create Table Syntax"
+            },
+            {
+                "command": "mysql-manager.copyCreateTable",
+                "title": "Copy Create Table Syntax"
+            }
+        ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "mysql-manager.addConnection",
+                    "when": "view == mysqlExplorer"
+                },
+                {
+                    "command": "mysql-manager.refresh",
+                    "when": "view == mysqlExplorer"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "mysql-manager.deleteConnection",
+                    "when": "view == mysqlExplorer && viewItem == connection"
+                },
+                {
+                    "command": "mysql-manager.createDatabase",
+                    "when": "view == mysqlExplorer && viewItem == connection"
+                },
+                {
+                    "command": "mysql-manager.dropDatabase",
+                    "when": "view == mysqlExplorer && viewItem == database"
+                },
+                {
+                    "command": "mysql-manager.refreshTables",
+                    "when": "view == mysqlExplorer && viewItem == database",
+                    "group": "navigation"
+                },
+                {
+                    "command": "mysql-manager.reconnect",
+                    "when": "view == mysqlExplorer && viewItem == connection",
+                    "group": "inline"
+                },
+                {
+                    "command": "mysql-manager.retryConnection",
+                    "when": "view == mysqlExplorer && viewItem == connection && !mysql.isConnected"
+                },
+                {
+                    "when": "view == mysqlExplorer && viewItem == table",
+                    "command": "mysql-manager.renameTable",
+                    "group": "1_modification"
+                },
+                {
+                    "when": "view == mysqlExplorer && viewItem == table",
+                    "command": "mysql-manager.duplicateTable",
+                    "group": "1_modification"
+                },
+                {
+                    "when": "view == mysqlExplorer && viewItem == table",
+                    "command": "mysql-manager.truncateTable",
+                    "group": "1_modification"
+                },
+                {
+                    "when": "view == mysqlExplorer && viewItem == table",
+                    "command": "mysql-manager.deleteTable",
+                    "group": "1_modification"
+                },
+                {
+                    "when": "view == mysqlExplorer && viewItem == table",
+                    "command": "mysql-manager.showCreateTable",
+                    "group": "2_query"
+                },
+                {
+                    "when": "view == mysqlExplorer && viewItem == table",
+                    "command": "mysql-manager.copyCreateTable",
+                    "group": "2_query"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "dependencies": {
+        "mysql2": "^2.3.3"
+    },
+    "devDependencies": {
+        "@types/node": "^14.x",
+        "@types/vscode": "^1.60.0",
+        "typescript": "^4.4.3"
+    }
+}
