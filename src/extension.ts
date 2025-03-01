@@ -109,8 +109,8 @@ export async function activate(context: vscode.ExtensionContext) {
           await item.connection.connect();
         }
 
-        const tableView = TableWebView.getInstance(item.connection);
-        await tableView.show(item.database, item.label);
+        // 使用新的创建方法
+        TableWebView.createOrShow(item.connection, item.database, item.label);
       } catch (error) {
         vscode.window.showErrorMessage(`Failed to open table view: ${error.message}`);
       }

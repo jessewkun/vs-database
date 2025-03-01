@@ -2,19 +2,37 @@ import * as vscode from 'vscode';
 import { MySQLConnection } from './mysqlConnection';
 
 export class TableWebView {
-  private static instance: TableWebView;
+  // 添加静态映射来跟踪所有打开的表视图
+  private static readonly viewMap = new Map<string, TableWebView>();
+
   private panel: vscode.WebviewPanel | undefined;
   private connection: MySQLConnection;
+  private database: string;
+  private table: string;
 
-  private constructor(connection: MySQLConnection) {
+  constructor(connection: MySQLConnection, database: string, table: string) {
     this.connection = connection;
+    this.database = database;
+    this.table = table;
   }
 
-  static getInstance(connection: MySQLConnection): TableWebView {
-    if (!TableWebView.instance || TableWebView.instance.connection !== connection) {
-      TableWebView.instance = new TableWebView(connection);
+  static createOrShow(connection: MySQLConnection, database: string, table: string): TableWebView {
+    const identifier = `${connection.connectionConfig.id}_${database}.${table}`;
+
+    // 检查是否已存在该表的视图
+    let tableView = TableWebView.viewMap.get(identifier);
+
+    if (tableView && tableView.panel) {
+      // 如果视图已存在，显示并返回已存在的视图
+      tableView.panel.reveal();
+      return tableView;
     }
-    return TableWebView.instance;
+
+    // 如果不存在或已被销毁，创建新视图
+    tableView = new TableWebView(connection, database, table);
+    TableWebView.viewMap.set(identifier, tableView);
+    tableView.show();
+    return tableView;
   }
 
   private checkConnection(): void {
@@ -26,79 +44,89 @@ export class TableWebView {
     }
   }
 
-  async show(database: string, table: string) {
+  async show() {
     try {
       this.checkConnection();
+      await this.connection.useDatabase(this.database);
 
-      await this.connection.useDatabase(database);
+      const structure = await this.connection.getTableStructure(this.database, this.table);
+      const indexInfo = await this.connection.getTableIndexes(this.database, this.table);
 
-      const structure = await this.connection.getTableStructure(database, table);
-      const indexInfo = await this.connection.getTableIndexes(database, table);
+      const columnToShowIn = this.getNextViewColumn();
 
-      if (this.panel) {
-        this.panel.reveal();
-        this.updateContent(database, table, structure, indexInfo);
-      } else {
-        this.panel = vscode.window.createWebviewPanel(
-          'mysqlTableView',
-          `${table}`,
-          vscode.ViewColumn.Two,
-          {
-            enableScripts: true,
-            retainContextWhenHidden: true
+      this.panel = vscode.window.createWebviewPanel(
+        'mysqlTableView',
+        `${this.table}`,
+        columnToShowIn,
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true
+        }
+      );
+
+      // 在面板关闭时从映射中移除
+      this.panel.onDidDispose(() => {
+        const identifier = `${this.connection.connectionConfig.id}_${this.database}.${this.table}`;
+        TableWebView.viewMap.delete(identifier);
+        this.panel = undefined;
+      });
+
+      this.updateContent(structure, indexInfo);
+
+      this.panel.webview.onDidReceiveMessage(async message => {
+        try {
+          this.checkConnection();
+          switch (message.command) {
+            case 'executeQuery':
+              try {
+                const results = await this.connection.executeQuery(message.sql);
+                this.panel?.webview.postMessage({
+                  command: 'queryResult',
+                  data: results
+                });
+              } catch (error) {
+                this.panel?.webview.postMessage({
+                  command: 'queryError',
+                  error: error.message
+                });
+                vscode.window.showErrorMessage(`Query failed: ${error.message}`);
+              }
+              break;
           }
-        );
-
-        this.panel.onDidDispose(() => {
-          this.panel = undefined;
-        });
-
-        this.updateContent(database, table, structure, indexInfo);
-
-        this.panel.webview.onDidReceiveMessage(async message => {
-          try {
-            this.checkConnection();
-            switch (message.command) {
-              case 'executeQuery':
-                try {
-                  const results = await this.connection.executeQuery(message.sql);
-                  this.panel?.webview.postMessage({
-                    command: 'queryResult',
-                    data: results
-                  });
-                } catch (error) {
-                  this.panel?.webview.postMessage({
-                    command: 'queryError',
-                    error: error.message
-                  });
-                  vscode.window.showErrorMessage(`Query failed: ${error.message}`);
-                }
-                break;
-            }
-          } catch (error) {
-            vscode.window.showErrorMessage(`Operation failed: ${error.message}`);
-          }
-        });
-      }
+        } catch (error) {
+          vscode.window.showErrorMessage(`Operation failed: ${error.message}`);
+        }
+      });
     } catch (error) {
       console.error('Error showing table:', error);
       vscode.window.showErrorMessage(`Failed to show table: ${error.message}`);
     }
   }
 
-  private updateContent(
-    database: string,
-    table: string,
-    columnInfo: any[],
-    indexInfo: any[]
-  ) {
+  private getNextViewColumn(): vscode.ViewColumn {
+    const activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) {
+      return vscode.ViewColumn.One;
+    }
+
+    switch (activeEditor.viewColumn) {
+      case vscode.ViewColumn.One:
+        return vscode.ViewColumn.Two;
+      case vscode.ViewColumn.Two:
+        return vscode.ViewColumn.Three;
+      default:
+        return vscode.ViewColumn.One;
+    }
+  }
+
+  private updateContent(columnInfo: any[], indexInfo: any[]) {
     if (!this.panel) return;
 
-    this.panel.title = table;
+    this.panel.title = this.table;
     this.panel.webview.html = this.getHtmlContent(
       this.connection.connectionConfig.name,
-      database,
-      table,
+      this.database,
+      this.table,
       columnInfo,
       indexInfo
     );
