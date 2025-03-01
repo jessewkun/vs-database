@@ -45,8 +45,22 @@ export class MySQLProvider implements vscode.TreeDataProvider<MySQLTreeItem> {
   }
 
   async saveConnection(config: MySQLConfig) {
+    // 获取所有现有连接的配置
     const configs = Array.from(this.connections.values()).map(conn => conn.connectionConfig);
+    // 更新全局状态
     await this.context.globalState.update('mysql-connections', configs);
+  }
+
+  // 添加删除连接的方法
+  async deleteConnection(id: string) {
+    const connection = this.connections.get(id);
+    if (connection) {
+      await connection.disconnect();
+      this.connections.delete(id);
+      // 保存更新后的连接列表
+      const configs = Array.from(this.connections.values()).map(conn => conn.connectionConfig);
+      await this.context.globalState.update('mysql-connections', configs);
+    }
   }
 
   refresh(): void {
@@ -74,9 +88,7 @@ export class MySQLProvider implements vscode.TreeDataProvider<MySQLTreeItem> {
           conn.connectionConfig.name,
           'connection',
           conn,
-          vscode.TreeItemCollapsibleState.Collapsed,
-          undefined,
-          conn.isConnected
+          vscode.TreeItemCollapsibleState.Collapsed
         )
       );
     }
@@ -235,8 +247,7 @@ export class MySQLTreeItem extends vscode.TreeItem {
     public readonly type: 'connection' | 'database' | 'table' | 'error',
     public readonly connection: MySQLConnection | null,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly database?: string,
-    private readonly isConnected: boolean = false
+    public readonly database?: string
   ) {
     super(label, collapsibleState);
 
@@ -255,13 +266,15 @@ export class MySQLTreeItem extends vscode.TreeItem {
       case 'connection':
         this.iconPath = new vscode.ThemeIcon(
           'database',
-          isConnected ? undefined : new vscode.ThemeColor('descriptionForeground')
+          connection?.isConnected ? undefined : new vscode.ThemeColor('descriptionForeground')
         );
         if (connection) {
           const config = connection.connectionConfig;
-          this.description = isConnected
-            ? `(${config.user}@${config.host}:${config.port})`
-            : '(click to connect)';
+          if (connection.isConnected) {
+            this.description = `(${config.user}@${config.host}:${config.port})`;
+          } else {
+            this.description = '(click to connect)';
+          }
         }
         break;
       case 'database':

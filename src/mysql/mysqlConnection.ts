@@ -76,11 +76,18 @@ export class MySQLConnection {
     return (rows as any[]).map(row => row.Database);
   }
 
-  async createDatabase(name: string): Promise<void> {
+  async createDatabase(name: string, charset: string = 'utf8mb4', collation: string = 'utf8mb4_unicode_ci'): Promise<void> {
     if (!this.connection) {
       throw new Error('Not connected');
     }
-    await this.connection.query(`CREATE DATABASE \`${name}\``);
+    try {
+      await this.connection.query(
+        `CREATE DATABASE \`${name}\` CHARACTER SET = '${charset}' COLLATE = '${collation}'`
+      );
+    } catch (error) {
+      console.error('Create database error:', error);
+      throw error;
+    }
   }
 
   async dropDatabase(name: string): Promise<void> {
@@ -266,6 +273,79 @@ export class MySQLConnection {
       return createTableSyntax;
     } catch (error) {
       console.error('Get create table syntax error:', error);
+      throw error;
+    }
+  }
+
+  // 获取服务器变量
+  async getServerVariables(): Promise<any[]> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+    try {
+      const [rows] = await this.connection.query('SHOW VARIABLES');
+      return rows as any[];
+    } catch (error) {
+      console.error('Get server variables error:', error);
+      throw error;
+    }
+  }
+
+  // 获取服务器进程
+  async getServerProcesses(): Promise<any[]> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+    try {
+      const [rows] = await this.connection.query('SHOW PROCESSLIST');
+      return rows as any[];
+    } catch (error) {
+      console.error('Get server processes error:', error);
+      throw error;
+    }
+  }
+
+  async renameDatabase(oldName: string, newName: string): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+    try {
+      // MySQL 不支持直接重命名数据库，需要创建新数据库并复制数据
+      await this.connection.query(`CREATE DATABASE \`${newName}\``);
+
+      // 获取所有表
+      const [tables] = await this.connection.query(`
+          SELECT table_name
+          FROM information_schema.tables
+          WHERE table_schema = ?`, [oldName]);
+
+      // 复制每个表到新数据库
+      for (const table of tables as any[]) {
+        const tableName = table.table_name;
+        await this.connection.query(
+          `RENAME TABLE \`${oldName}\`.\`${tableName}\` TO \`${newName}\`.\`${tableName}\``
+        );
+      }
+
+      // 删除旧数据库
+      await this.connection.query(`DROP DATABASE \`${oldName}\``);
+    } catch (error) {
+      console.error('Rename database error:', error);
+      throw error;
+    }
+  }
+
+  async createTable(database: string, tableName: string, columns: string[]): Promise<void> {
+    if (!this.connection) {
+      throw new Error('Not connected');
+    }
+    try {
+      await this.useDatabase(database);
+      const columnDefinitions = columns.join(',\n');
+      const sql = `CREATE TABLE \`${tableName}\` (\n${columnDefinitions}\n)`;
+      await this.connection.query(sql);
+    } catch (error) {
+      console.error('Create table error:', error);
       throw error;
     }
   }

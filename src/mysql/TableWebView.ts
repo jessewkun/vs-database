@@ -282,6 +282,102 @@ export class TableWebView {
                         border-collapse: collapse;
                         margin-top: 0;
                     }
+
+                    /* 添加新的样式 */
+                    .tab-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 15px;
+                    }
+
+                    .display-mode {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+
+                    .display-mode select {
+                        padding: 4px 8px;
+                        background-color: var(--vscode-dropdown-background);
+                        color: var(--vscode-dropdown-foreground);
+                        border: 1px solid var(--vscode-dropdown-border);
+                        border-radius: 2px;
+                    }
+
+                    /* 优化纵向显示模式的样式 */
+                    .vertical-row {
+                        background: var(--vscode-editor-background);
+                        border-radius: 4px;
+                        margin-bottom: 16px;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .vertical-row:last-child {
+                        margin-bottom: 0;
+                    }
+
+                    .vertical-row-header {
+                        padding: 8px 12px;
+                        background: var(--vscode-sideBarSectionHeader-background);
+                        color: var(--vscode-sideBarSectionHeader-foreground);
+                        font-size: 0.9em;
+                        border-bottom: 1px solid var(--vscode-panel-border);
+                        border-radius: 4px 4px 0 0;
+                    }
+
+                    .vertical-table {
+                        width: 100%;
+                        border: 1px solid var(--vscode-panel-border);
+                        border-radius: 0 0 4px 4px;
+                        border-spacing: 0;
+                    }
+
+                    .vertical-table tr {
+                        display: flex;
+                    }
+
+                    .vertical-table tr:not(:last-child) {
+                        border-bottom: 1px solid var(--vscode-panel-border);
+                    }
+
+                    .vertical-table td {
+                        padding: 8px 12px;
+                        line-height: 1.4;
+                        border: none;
+                    }
+
+                    .vertical-table td:first-child {
+                        flex: 0 0 200px;
+                        background: var(--vscode-editor-background);
+                        color: var(--vscode-foreground);
+                        font-weight: 500;
+                        border-right: 1px solid var(--vscode-panel-border);
+                    }
+
+                    .vertical-table td:last-child {
+                        flex: 1;
+                        background: var(--vscode-input-background);
+                        color: var(--vscode-input-foreground);
+                    }
+
+                    /* 添加行号样式 */
+                    .row-number {
+                        color: var(--vscode-descriptionForeground);
+                        font-size: 0.9em;
+                    }
+
+                    /* 优化 NULL 值的显示 */
+                    .null-value {
+                        color: var(--vscode-descriptionForeground);
+                        font-style: italic;
+                    }
+
+                    /* 优化长文本的显示 */
+                    .vertical-table td:last-child {
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                    }
                 </style>
             </head>
             <body>
@@ -362,12 +458,23 @@ export class TableWebView {
                     </div>
 
                     <div id="query-result" class="tab-content">
+                        <div class="tab-header">
+                            <div></div>
+                            <div class="display-mode">
+                                <label>Display Mode:</label>
+                                <select id="displayMode" onchange="toggleDisplayMode()">
+                                    <option value="horizontal">Horizontal</option>
+                                    <option value="vertical">Vertical</option>
+                                </select>
+                            </div>
+                        </div>
                         <div id="queryResultContent"></div>
                     </div>
                 </div>
 
                 <script>
                     const vscode = acquireVsCodeApi();
+                    let currentData = null;
 
                     function showTab(tabId) {
                         // 隐藏所有标签页内容
@@ -389,9 +496,7 @@ export class TableWebView {
                         const sql = document.getElementById('sqlEditor').value;
                         const resultContent = document.getElementById('queryResultContent');
 
-                        // 显示加载状态
                         resultContent.innerHTML = 'Executing query...';
-                        // 切换到查询结果标签页
                         showTab('query-result');
 
                         vscode.postMessage({
@@ -400,37 +505,88 @@ export class TableWebView {
                         });
                     }
 
+                    function toggleDisplayMode() {
+                        if (!currentData) return;
+
+                        const mode = document.getElementById('displayMode').value;
+                        renderQueryResult(currentData, mode);
+                    }
+
+                    function renderQueryResult(data, mode = 'horizontal') {
+                        const resultContent = document.getElementById('queryResultContent');
+
+                        if (data.rows.length === 0) {
+                            resultContent.innerHTML = 'No results found';
+                            return;
+                        }
+
+                        if (mode === 'horizontal') {
+                            renderHorizontalTable(data, resultContent);
+                        } else {
+                            renderVerticalTable(data, resultContent);
+                        }
+                    }
+
+                    function renderHorizontalTable(data, container) {
+                        let table = '<table><thead><tr>';
+                        data.columns.forEach(column => {
+                            table += \`<th>\${column}</th>\`;
+                        });
+                        table += '</tr></thead><tbody>';
+
+                        data.rows.forEach(row => {
+                            table += '<tr>';
+                            data.columns.forEach(column => {
+                                table += \`<td>\${row[column] === null ? 'NULL' : row[column]}</td>\`;
+                            });
+                            table += '</tr>';
+                        });
+
+                        table += '</tbody></table>';
+                        container.innerHTML = table;
+                    }
+
+                    function renderVerticalTable(data, container) {
+                        let html = '';
+
+                        data.rows.forEach((row, rowIndex) => {
+                            html += \`<div class="vertical-row">
+                                <div class="vertical-row-header">
+                                    <span class="row-number">Record \${rowIndex + 1} of \${data.rows.length}</span>
+                                </div>
+                                <table class="vertical-table">\`;
+
+                            data.columns.forEach(column => {
+                                const value = row[column];
+                                const displayValue = value === null
+                                    ? '<span class="null-value">NULL</span>'
+                                    : value;
+
+                                html += \`<tr>
+                                    <td>\${column}</td>
+                                    <td>\${displayValue}</td>
+                                </tr>\`;
+                            });
+
+                            html += \`</table></div>\`;
+                        });
+
+                        container.innerHTML = html;
+                    }
+
                     window.addEventListener('message', event => {
                         const message = event.data;
-                        const resultContent = document.getElementById('queryResultContent');
 
                         switch (message.command) {
                             case 'queryResult':
-                                if (message.data.rows.length === 0) {
-                                    resultContent.innerHTML = 'No results found';
-                                    return;
-                                }
-
-                                let table = '<table><thead><tr>';
-                                message.data.columns.forEach(column => {
-                                    table += \`<th>\${column}</th>\`;
-                                });
-                                table += '</tr></thead><tbody>';
-
-                                message.data.rows.forEach(row => {
-                                    table += '<tr>';
-                                    message.data.columns.forEach(column => {
-                                        table += \`<td>\${row[column] === null ? 'NULL' : row[column]}</td>\`;
-                                    });
-                                    table += '</tr>';
-                                });
-
-                                table += '</tbody></table>';
-                                resultContent.innerHTML = table;
+                                currentData = message.data;
+                                const mode = document.getElementById('displayMode').value;
+                                renderQueryResult(currentData, mode);
                                 break;
 
                             case 'queryError':
-                                resultContent.innerHTML = \`<div class="error">\${message.error}</div>\`;
+                                document.getElementById('queryResultContent').innerHTML =
+                                    \`<div class="error">\${message.error}</div>\`;
                                 break;
                         }
                     });

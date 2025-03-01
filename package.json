@@ -104,6 +104,26 @@
             {
                 "command": "mysql-manager.copyCreateTable",
                 "title": "Copy Create Table Syntax"
+            },
+            {
+                "command": "mysql-manager.refreshDatabases",
+                "title": "Refresh Databases",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.showServerVariables",
+                "title": "Show Server Variables",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.showServerProcesses",
+                "title": "Show Server Processes",
+                "category": "MySQL"
+            },
+            {
+                "command": "mysql-manager.createTable",
+                "title": "Create Table",
+                "category": "MySQL"
             }
         ],
         "menus": {
@@ -173,6 +193,26 @@
                     "when": "view == mysqlExplorer && viewItem == table",
                     "command": "mysql-manager.copyCreateTable",
                     "group": "2_query"
+                },
+                {
+                    "command": "mysql-manager.refreshDatabases",
+                    "when": "view == mysqlExplorer && viewItem == connection",
+                    "group": "navigation"
+                },
+                {
+                    "command": "mysql-manager.showServerVariables",
+                    "when": "view == mysqlExplorer && viewItem == connection",
+                    "group": "2_information"
+                },
+                {
+                    "command": "mysql-manager.showServerProcesses",
+                    "when": "view == mysqlExplorer && viewItem == connection",
+                    "group": "2_information"
+                },
+                {
+                    "command": "mysql-manager.createTable",
+                    "when": "view == mysqlExplorer && viewItem == database",
+                    "group": "1_modification"
                 }
             ]
         }

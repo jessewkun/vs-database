@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { MySQLProvider } from './mysql/mysqlProvider';
 import { MySQLTreeItem } from './mysql/mysqlProvider';
 import { TableWebView } from './mysql/TableWebView';
+import { ServerInfoWebView } from './mysql/ServerInfoWebView';
 
 export async function activate(context: vscode.ExtensionContext) {
   // 添加激活日志
@@ -34,10 +35,16 @@ export async function activate(context: vscode.ExtensionContext) {
       mysqlProvider.refresh();
     }),
 
-    vscode.commands.registerCommand('mysql-manager.deleteConnection', async (item) => {
+    vscode.commands.registerCommand('mysql-manager.deleteConnection', async (item: MySQLTreeItem) => {
       if (item.connection) {
-        await item.connection.disconnect();
-        mysqlProvider.refresh();
+        try {
+          // 使用新的删除方法
+          await mysqlProvider.deleteConnection(item.connection.connectionConfig.id);
+          mysqlProvider.refresh();
+          vscode.window.showInformationMessage(`Connection ${item.label} deleted`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Failed to delete connection: ${error.message}`);
+        }
       }
     }),
 
@@ -245,6 +252,70 @@ export async function activate(context: vscode.ExtensionContext) {
       } catch (error) {
         console.error('Copy create table error:', error);
         vscode.window.showErrorMessage(`Failed to copy create table syntax: ${error.message}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('mysql-manager.addDatabase', async (item: MySQLTreeItem) => {
+      if (!item.connection) return;
+
+      try {
+        const name = await vscode.window.showInputBox({
+          prompt: 'Enter new database name',
+          validateInput: value => {
+            return value ? null : 'Database name is required';
+          }
+        });
+
+        if (name) {
+          await item.connection.createDatabase(name);
+          vscode.window.showInformationMessage(`Database ${name} created successfully`);
+          mysqlProvider.refresh(item);
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to create database: ${error.message}`);
+      }
+    }),
+
+    vscode.commands.registerCommand('mysql-manager.refreshDatabases', (item: MySQLTreeItem) => {
+      if (item.connection) {
+        mysqlProvider.refresh(item);
+      }
+    }),
+
+    vscode.commands.registerCommand('mysql-manager.showServerVariables', async (item: MySQLTreeItem) => {
+      if (!item.connection) return;
+      ServerInfoWebView.createOrShow(item.connection, 'variables');
+    }),
+
+    vscode.commands.registerCommand('mysql-manager.showServerProcesses', async (item: MySQLTreeItem) => {
+      if (!item.connection) return;
+      ServerInfoWebView.createOrShow(item.connection, 'processes');
+    }),
+
+    vscode.commands.registerCommand('mysql-manager.createTable', async (item: MySQLTreeItem) => {
+      if (!item.connection || !item.label) return;
+
+      const tableName = await vscode.window.showInputBox({
+        prompt: 'Enter table name',
+        validateInput: value => {
+          return value ? null : 'Table name is required';
+        }
+      });
+
+      if (tableName) {
+        try {
+          // 创建一个基本的表结构
+          const columns = [
+            'id INT PRIMARY KEY AUTO_INCREMENT',
+            'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+          ];
+
+          await item.connection.createTable(item.label, tableName, columns);
+          mysqlProvider.refresh(item);
+          vscode.window.showInformationMessage(`Table ${tableName} created successfully`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Failed to create table: ${error.message}`);
+        }
       }
     })
   );
