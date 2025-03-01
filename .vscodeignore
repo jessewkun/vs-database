@@ -1,0 +1,8 @@
+!media/**
+!node_modules/**
+!out/**
+!package.json
+!package-lock.json
+!tsconfig.json
+!vscode-extension-quickstart.md
+!src/mysql/webview/**/*
