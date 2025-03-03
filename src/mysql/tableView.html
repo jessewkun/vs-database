@@ -132,14 +132,25 @@
                 margin-top: 0;
             }
             .tab-header {
+                margin-bottom: 15px;
+                padding: 10px;
+                background-color: var(--vscode-editor-background);
+                border: 1px solid var(--vscode-panel-border);
+                border-radius: 3px;
+            }
+            .tab-header-row {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 15px;
+                width: 100%;
             }
             .display-mode {
                 display: flex;
                 align-items: center;
+                gap: 8px;
+            }
+            .query-actions {
+                display: flex;
                 gap: 8px;
             }
             .display-mode select {
@@ -280,6 +291,23 @@
             }
             .query-history-sql:hover {
                 background-color: var(--vscode-list-hoverBackground);
+            }
+            .action-btn {
+                background-color: var(--vscode-button-secondaryBackground);
+                color: var(--vscode-button-secondaryForeground);
+                border: 1px solid var(--vscode-button-border);
+                padding: 4px 12px;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 12px;
+                height: 24px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 80px;
+            }
+            .action-btn:hover {
+                background-color: var(--vscode-button-secondaryHoverBackground);
             }
         </style>
     </head>
@@ -458,13 +486,37 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
 
             <div id="query-result" class="tab-content">
                 <div class="tab-header">
-                    <div></div>
-                    <div class="display-mode">
-                        <label>Display Mode:</label>
-                        <select id="displayMode" onchange="toggleDisplayMode()">
-                            <option value="horizontal">Horizontal</option>
-                            <option value="vertical">Vertical</option>
-                        </select>
+                    <div class="tab-header-row">
+                        <div class="query-actions">
+                            <button class="action-btn" onclick="copyAsJson()">
+                                Copy as JSON
+                            </button>
+                            <button class="action-btn" onclick="copyAsInsert()">
+                                Copy as Insert
+                            </button>
+                            <button
+                                class="action-btn"
+                                onclick="downloadAsCsv()"
+                            >
+                                Download as CSV
+                            </button>
+                            <button
+                                class="action-btn"
+                                onclick="downloadAsSql()"
+                            >
+                                Download as SQL
+                            </button>
+                        </div>
+                        <div class="display-mode">
+                            <label>Display Mode:</label>
+                            <select
+                                id="displayMode"
+                                onchange="toggleDisplayMode()"
+                            >
+                                <option value="horizontal">Horizontal</option>
+                                <option value="vertical">Vertical</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div id="queryResultContent"></div>
@@ -526,8 +578,12 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
             function renderQueryResult(data, mode = "horizontal") {
                 const resultContent =
                     document.getElementById("queryResultContent");
+                const queryActions = document.querySelector(".query-actions");
 
-                if (data.rows.length === 0) {
+                // 初始化时显示按钮
+                queryActions.style.display = "flex";
+
+                if (!data || !data.rows || data.rows.length === 0) {
                     resultContent.innerHTML = "No results found";
                     return;
                 }
@@ -671,6 +727,137 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                 vscode.postMessage({
                     command: "showInfo",
                     text: "SQL copied to clipboard",
+                });
+            }
+
+            function copyAsJson() {
+                if (!currentData || !currentData.rows) return;
+                const jsonStr = JSON.stringify(currentData.rows, null, 2);
+                copyToClipboard(jsonStr, "JSON data copied to clipboard");
+            }
+
+            function copyAsInsert() {
+                if (
+                    !currentData ||
+                    !currentData.rows ||
+                    currentData.rows.length === 0
+                )
+                    return;
+
+                const table =
+                    document
+                        .getElementById("sqlEditor")
+                        .value.match(/FROM\s+`?(\w+)`?/i)?.[1] || "{{table}}";
+                let insertSql = currentData.rows
+                    .map((row) => {
+                        const columns = Object.keys(row);
+                        const values = columns.map((col) => {
+                            const val = row[col];
+                            if (val === null) return "NULL";
+                            if (typeof val === "number") return val;
+                            return `'${val.toString().replace(/'/g, "''")}'`;
+                        });
+
+                        return `INSERT INTO \`${table}\` (\`${columns.join(
+                            "`, `"
+                        )}\`) VALUES (${values.join(", ")});`;
+                    })
+                    .join("\n");
+
+                copyToClipboard(
+                    insertSql,
+                    "Insert statement copied to clipboard"
+                );
+            }
+
+            function downloadAsCsv() {
+                if (
+                    !currentData ||
+                    !currentData.rows ||
+                    currentData.rows.length === 0
+                )
+                    return;
+
+                const columns = currentData.columns;
+                const csvContent = [
+                    columns.join(","),
+                    ...currentData.rows.map((row) =>
+                        columns
+                            .map((col) => {
+                                const val = row[col];
+                                if (val === null) return "";
+                                if (
+                                    typeof val === "string" &&
+                                    val.includes(",")
+                                ) {
+                                    return `"${val.replace(/"/g, '""')}"`;
+                                }
+                                return val;
+                            })
+                            .join(",")
+                    ),
+                ].join("\n");
+
+                downloadFile(csvContent, "query_result.csv", "text/csv");
+            }
+
+            function downloadAsSql() {
+                if (
+                    !currentData ||
+                    !currentData.rows ||
+                    currentData.rows.length === 0
+                )
+                    return;
+
+                const table =
+                    document
+                        .getElementById("sqlEditor")
+                        .value.match(/FROM\s+`?(\w+)`?/i)?.[1] || "{{table}}";
+                let sqlContent = "-- Generated SQL Insert Statements\n\n";
+
+                currentData.rows.forEach((row) => {
+                    const columns = Object.keys(row);
+                    const values = columns.map((col) => {
+                        const val = row[col];
+                        if (val === null) return "NULL";
+                        if (typeof val === "number") return val;
+                        return `'${val.toString().replace(/'/g, "''")}'`;
+                    });
+
+                    sqlContent += `INSERT INTO \`${table}\` (\`${columns.join(
+                        "`, `"
+                    )}\`) VALUES (${values.join(", ")});\n`;
+                });
+
+                downloadFile(sqlContent, "query_result.sql", "text/plain");
+            }
+
+            function copyToClipboard(text, successMessage) {
+                const textarea = document.createElement("textarea");
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textarea);
+
+                vscode.postMessage({
+                    command: "showInfo",
+                    text: successMessage,
+                });
+            }
+
+            function downloadFile(content, filename, contentType) {
+                const blob = new Blob([content], { type: contentType });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename;
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                vscode.postMessage({
+                    command: "showInfo",
+                    text: `File downloaded: ${filename}`,
                 });
             }
 

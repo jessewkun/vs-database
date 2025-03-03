@@ -18,7 +18,7 @@ export class TableWebView {
     this.connection = connection;
     this.database = database;
     this.table = table;
-    this.templatePath = path.join(__dirname, '..', 'mysql', 'tableView.html');
+    this.templatePath = path.join(__dirname, '../../src/mysql/tableView.html');
   }
 
   static createOrShow(connection: MySQLConnection, database: string, table: string): TableWebView {
