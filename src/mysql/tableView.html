@@ -82,11 +82,13 @@
                 position: relative;
                 overflow: auto;
                 max-height: 70vh;
+                width: 100%;
             }
             #queryResultContent table {
                 margin-top: 0;
                 border-collapse: separate;
                 border-spacing: 0;
+                width: 100%;
             }
             #queryResultContent thead {
                 position: sticky;
@@ -104,16 +106,46 @@
             }
             #queryResultContent td {
                 padding: 8px 16px;
-                max-width: 300px;
-                min-width: 100px;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 border: 1px solid var(--vscode-panel-border);
+                cursor: pointer;
+                position: relative;
+                transition: all 0.3s;
+                max-width: 300px;
             }
             #queryResultContent td:hover {
-                white-space: normal;
-                word-break: break-all;
+                position: relative;
+                white-space: pre-wrap !important;
+                word-break: break-word !important;
+                max-width: none !important;
+                background-color: var(--vscode-list-hoverBackground);
+                z-index: 10;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+            #queryResultContent td:active {
+                background-color: var(--vscode-editor-selectionBackground);
+            }
+            #queryResultContent td::after {
+                content: "Copied!";
+                position: absolute;
+                top: -30px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--vscode-editor-background);
+                color: var(--vscode-foreground);
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                border: 1px solid var(--vscode-panel-border);
+                opacity: 0;
+                transition: opacity 0.2s;
+                pointer-events: none;
+                z-index: 100;
+            }
+            #queryResultContent td.copied::after {
+                opacity: 1;
             }
             .tabs {
                 margin: 20px 0 0 0;
@@ -633,9 +665,13 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                 data.rows.forEach((row) => {
                     table += "<tr>";
                     data.columns.forEach((column) => {
-                        table += `<td>${
-                            row[column] === null ? "NULL" : row[column]
-                        }</td>`;
+                        const value = row[column];
+                        const displayValue = value === null ? "NULL" : value;
+                        const escapedValue = String(displayValue)
+                            .replace(/'/g, "\\'")
+                            .replace(/"/g, '\\"')
+                            .replace(/\\/g, "\\\\");
+                        table += `<td onclick="copyTableCell(this, '${escapedValue}')">${displayValue}</td>`;
                     });
                     table += "</tr>";
                 });
@@ -662,10 +698,14 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                             value === null
                                 ? '<span class="null-value">NULL</span>'
                                 : value;
-
+                        const escapedValue = String(
+                            value === null ? "NULL" : value
+                        )
+                            .replace(/'/g, "\\'")
+                            .replace(/"/g, '\\"');
                         html += `<tr>
                         <td>${column}</td>
-                        <td>${displayValue}</td>
+                        <td onclick="copyTableCell(this, '${escapedValue}')">${displayValue}</td>
                     </tr>`;
                     });
 
@@ -673,6 +713,14 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                 });
 
                 container.innerHTML = html;
+            }
+
+            function copyTableCell(cell, value) {
+                // 确保值不为 null
+                const textValue = value === null ? "NULL" : value;
+
+                // 复制到剪贴板
+                copyToClipboard(textValue, "Cell content copied to clipboard");
             }
 
             function formatBytes(bytes) {
