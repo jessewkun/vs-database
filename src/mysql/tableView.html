@@ -680,7 +680,17 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                         (entry, index) => `
                 <div class="query-history-item">
                     <div class="query-history-header">
-                        <div class="query-history-time">${entry.timestamp.toLocaleString()}</div>
+                        <div class="query-history-time">${entry.timestamp.getFullYear()}-${String(
+                            entry.timestamp.getMonth() + 1
+                        ).padStart(2, "0")}-${String(
+                            entry.timestamp.getDate()
+                        ).padStart(2, "0")} ${String(
+                            entry.timestamp.getHours()
+                        ).padStart(2, "0")}:${String(
+                            entry.timestamp.getMinutes()
+                        ).padStart(2, "0")}:${String(
+                            entry.timestamp.getSeconds()
+                        ).padStart(2, "0")}</div>
                         <div class="query-history-status ${
                             entry.status === "pending"
                                 ? "pending"
