@@ -504,6 +504,16 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                     <div class="table-info-value">
                         {{tableInfo.data_free}} B
                     </div>
+
+                    <div class="table-info-label">Comment:</div>
+                    <div class="table-info-value">
+                        {{tableInfo.comment}}
+                        <span
+                            class="table-info-action"
+                            onclick="modifyComment()"
+                            >Modify</span
+                        >
+                    </div>
                 </div>
 
                 <h3>Create Table Syntax:</h3>
@@ -783,6 +793,14 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                 vscode.postMessage({
                     command: "resetAutoIncrement",
                     table: "{{table}}",
+                });
+            }
+
+            function modifyComment() {
+                vscode.postMessage({
+                    command: "modifyComment",
+                    table: "{{table}}",
+                    currentComment: "{{tableInfo.comment}}",
                 });
             }
 

@@ -387,7 +387,8 @@ export class MySQLConnection {
             DATA_LENGTH as data_length,
             MAX_DATA_LENGTH as max_data_length,
             INDEX_LENGTH as index_length,
-            DATA_FREE as data_free
+            DATA_FREE as data_free,
+            TABLE_COMMENT as comment
         FROM information_schema.TABLES t
         LEFT JOIN information_schema.COLLATION_CHARACTER_SET_APPLICABILITY csa
             ON t.TABLE_COLLATION = csa.COLLATION_NAME

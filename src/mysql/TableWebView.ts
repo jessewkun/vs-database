@@ -126,7 +126,7 @@ export class TableWebView {
             case 'modifyComment':
               const comment = await vscode.window.showInputBox({
                 prompt: 'Enter table comment',
-                value: tableInfo.comment || ''
+                value: message.currentComment || ''
               });
               if (comment !== undefined) {
                 await this.connection.modifyTableComment(this.database, this.table, comment);
