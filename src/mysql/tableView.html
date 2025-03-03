@@ -113,9 +113,27 @@
                 cursor: pointer;
                 position: relative;
                 transition: all 0.3s;
-                max-width: 300px;
                 background-color: var(--vscode-editor-background);
             }
+
+            /* 水平模式下的单元格最大宽度限制 */
+            #queryResultContent table:not(.vertical-table) td {
+                max-width: 300px;
+            }
+
+            /* 垂直模式下的内容列样式 */
+            #queryResultContent .vertical-table td:last-child {
+                flex: 1;
+                min-width: 0;
+                background: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                max-width: none;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            /* 悬停时的样式 */
             #queryResultContent td:hover {
                 position: relative;
                 white-space: pre-wrap !important;
@@ -125,6 +143,15 @@
                 z-index: 1;
                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             }
+
+            #queryResultContent .vertical-table td:last-child:hover {
+                position: relative;
+                white-space: pre-wrap !important;
+                word-break: break-word !important;
+                overflow: visible;
+                z-index: 2;
+            }
+
             #queryResultContent td:active {
                 background-color: var(--vscode-editor-selectionBackground);
             }
@@ -246,6 +273,8 @@
             }
             .vertical-table tr {
                 display: flex;
+                width: 100%;
+                min-width: 0;
             }
             .vertical-table tr:not(:last-child) {
                 border-bottom: 1px solid var(--vscode-panel-border);
@@ -257,15 +286,11 @@
             }
             .vertical-table td:first-child {
                 flex: 0 0 200px;
+                min-width: 200px;
                 background: var(--vscode-editor-background);
                 color: var(--vscode-foreground);
                 font-weight: 500;
                 border-right: 1px solid var(--vscode-panel-border);
-            }
-            .vertical-table td:last-child {
-                flex: 1;
-                background: var(--vscode-input-background);
-                color: var(--vscode-input-foreground);
             }
             .row-number {
                 color: var(--vscode-descriptionForeground);
@@ -274,10 +299,6 @@
             .null-value {
                 color: var(--vscode-descriptionForeground);
                 font-style: italic;
-            }
-            .vertical-table td:last-child {
-                white-space: pre-wrap;
-                word-break: break-word;
             }
             .table-info-grid {
                 display: grid;
