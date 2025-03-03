@@ -107,6 +107,8 @@ export class MySQLProvider implements vscode.TreeDataProvider<MySQLTreeItem> {
             await element.connection.connect();
           });
           this.log(`Successfully connected to ${element.label}`);
+          // 添加这行来刷新树视图，确保连接状态更新
+          this.refresh();
         }
 
         const databases = await element.connection.getDatabases();
@@ -122,6 +124,8 @@ export class MySQLProvider implements vscode.TreeDataProvider<MySQLTreeItem> {
       } catch (error) {
         this.log(`Failed to connect to ${element.label}: ${error.message}`);
         vscode.window.showErrorMessage(`Failed to connect: ${error.message}`);
+        // 连接失败时也刷新树视图
+        this.refresh();
         return [new MySQLTreeItem(
           'Failed to connect',
           'error',
@@ -264,17 +268,20 @@ export class MySQLTreeItem extends vscode.TreeItem {
 
     switch (type) {
       case 'connection':
-        this.iconPath = new vscode.ThemeIcon(
-          'database',
-          connection?.isConnected ? undefined : new vscode.ThemeColor('descriptionForeground')
-        );
         if (connection) {
           const config = connection.connectionConfig;
           if (connection.isConnected) {
-            this.description = `(${config.user}@${config.host}:${config.port})`;
+            // 连接成功时显示 user@host:port
+            this.description = `${config.user}@${config.host}:${config.port}`;
+            this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('charts.green'));
           } else {
-            this.description = '(click to connect)';
+            // 未连接时显示 Click to connect
+            this.description = 'Click to connect';
+            this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('charts.red'));
           }
+        } else {
+          this.description = 'Invalid connection';
+          this.iconPath = new vscode.ThemeIcon('database', new vscode.ThemeColor('charts.red'));
         }
         break;
       case 'database':
