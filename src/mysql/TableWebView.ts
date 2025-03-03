@@ -159,6 +159,10 @@ export class TableWebView {
                 vscode.window.showErrorMessage(`Query failed: ${error.message}`);
               }
               break;
+
+            case 'showInfo':
+              vscode.window.showInformationMessage(message.text);
+              break;
           }
         } catch (error) {
           vscode.window.showErrorMessage(`Operation failed: ${error.message}`);
@@ -484,6 +488,59 @@ export class TableWebView {
                         border: 1px solid var(--vscode-panel-border);
                         margin-top: 12px;
                     }
+
+                    .query-history-item {
+                        padding: 12px;
+                        border-bottom: 1px solid var(--vscode-panel-border);
+                    }
+
+                    .query-history-header {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 8px;
+                    }
+
+                    .query-history-time {
+                        font-size: 0.9em;
+                        color: var(--vscode-descriptionForeground);
+                    }
+
+                    .query-history-status {
+                        font-size: 0.85em;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-weight: 500;
+                    }
+
+                    .query-history-status.pending {
+                        background-color: var(--vscode-badge-background);
+                        color: var(--vscode-badge-foreground);
+                    }
+
+                    .query-history-status.success {
+                        background-color: var(--vscode-testing-iconPassed);
+                        color: var(--vscode-editor-background);
+                    }
+
+                    .query-history-status.error {
+                        background-color: var(--vscode-testing-iconFailed);
+                        color: var(--vscode-editor-background);
+                    }
+
+                    .query-history-sql {
+                        font-family: var(--vscode-editor-font-family);
+                        white-space: pre-wrap;
+                        word-break: break-word;
+                        padding: 8px;
+                        background-color: var(--vscode-editor-background);
+                        border-radius: 4px;
+                        cursor: pointer;
+                    }
+
+                    .query-history-sql:hover {
+                        background-color: var(--vscode-list-hoverBackground);
+                    }
                 </style>
             </head>
             <body>
@@ -506,6 +563,7 @@ export class TableWebView {
                         <button class="tab-button" onclick="showTab('structure')">Table Structure</button>
                         <button class="tab-button" onclick="showTab('indexes')">Indexes</button>
                         <button class="tab-button" onclick="showTab('query-result')">Query Result</button>
+                        <button class="tab-button" onclick="showTab('query-history')">Query History</button>
                     </div>
 
                     <div id="table-info" class="tab-content active">
@@ -628,11 +686,16 @@ export class TableWebView {
                         </div>
                         <div id="queryResultContent"></div>
                     </div>
+
+                    <div id="query-history" class="tab-content">
+                        <div class="query-history-list"></div>
+                    </div>
                 </div>
 
                 <script>
                     const vscode = acquireVsCodeApi();
                     let currentData = null;
+                    let queryHistory = [];
 
                     function showTab(tabId) {
                         // 隐藏所有标签页内容
@@ -653,9 +716,19 @@ export class TableWebView {
                     function executeQuery() {
                         const sql = document.getElementById('sqlEditor').value;
                         const resultContent = document.getElementById('queryResultContent');
+                        const timestamp = new Date();
 
                         resultContent.innerHTML = 'Executing query...';
                         showTab('query-result');
+
+                        // 添加查询到历史记录
+                        const historyEntry = {
+                            sql: sql,
+                            timestamp: timestamp,
+                            status: 'pending'
+                        };
+                        queryHistory.unshift(historyEntry);
+                        updateQueryHistory();
 
                         vscode.postMessage({
                             command: 'executeQuery',
@@ -754,17 +827,69 @@ export class TableWebView {
                         });
                     }
 
+                    function updateQueryHistory() {
+                        const container = document.querySelector('.query-history-list');
+                        container.innerHTML = queryHistory.map((entry, index) => \`
+                            <div class="query-history-item">
+                                <div class="query-history-header">
+                                    <div class="query-history-time">\${entry.timestamp.toLocaleString()}</div>
+                                    <div class="query-history-status \${entry.status === 'pending' ? 'pending' :
+                                                   entry.status === 'error' ? 'error' : 'success'}">
+                                        \${entry.status === 'pending' ? 'Executing' :
+                                          entry.status === 'error' ? 'Failed' : 'Success'}
+                                    </div>
+                                </div>
+                                <div class="query-history-sql" onclick="copySqlToClipboard(\${index})">\${entry.sql}</div>
+                            </div>
+                        \`).join('');
+                    }
+
+                    function copySqlToClipboard(index) {
+                        const entry = queryHistory[index];
+                        const textarea = document.createElement('textarea');
+                        textarea.value = entry.sql;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+
+                        // 显示复制成功的视觉反馈
+                        const sqlElement = document.querySelectorAll('.query-history-sql')[index];
+                        const originalBackground = sqlElement.style.backgroundColor;
+                        sqlElement.style.backgroundColor = 'var(--vscode-editor-selectionBackground)';
+                        setTimeout(() => {
+                            sqlElement.style.backgroundColor = originalBackground;
+                        }, 200);
+
+                        // 通知 VS Code
+                        vscode.postMessage({
+                            command: 'showInfo',
+                            text: 'SQL copied to clipboard'
+                        });
+                    }
+
                     window.addEventListener('message', event => {
                         const message = event.data;
 
                         switch (message.command) {
                             case 'queryResult':
                                 currentData = message.data;
+                                // 更新最新查询的状态
+                                if (queryHistory.length > 0) {
+                                    queryHistory[0].status = 'success';
+                                    updateQueryHistory();
+                                }
                                 const mode = document.getElementById('displayMode').value;
                                 renderQueryResult(currentData, mode);
                                 break;
 
                             case 'queryError':
+                                // 更新最新查询的状态
+                                if (queryHistory.length > 0) {
+                                    queryHistory[0].status = 'error';
+                                    queryHistory[0].error = message.error;
+                                    updateQueryHistory();
+                                }
                                 document.getElementById('queryResultContent').innerHTML =
                                     \`<div class="error">\${message.error}</div>\`;
                                 break;
