@@ -114,6 +114,7 @@
                 position: relative;
                 transition: all 0.3s;
                 max-width: 300px;
+                background-color: var(--vscode-editor-background);
             }
             #queryResultContent td:hover {
                 position: relative;
@@ -121,7 +122,7 @@
                 word-break: break-word !important;
                 max-width: none !important;
                 background-color: var(--vscode-list-hoverBackground);
-                z-index: 10;
+                z-index: 1;
                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             }
             #queryResultContent td:active {
@@ -667,11 +668,10 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                     data.columns.forEach((column) => {
                         const value = row[column];
                         const displayValue = value === null ? "NULL" : value;
-                        const escapedValue = String(displayValue)
-                            .replace(/'/g, "\\'")
-                            .replace(/"/g, '\\"')
-                            .replace(/\\/g, "\\\\");
-                        table += `<td onclick="copyTableCell(this, '${escapedValue}')">${displayValue}</td>`;
+                        const encodedValue = encodeURIComponent(
+                            String(displayValue)
+                        );
+                        table += `<td onclick="copyTableCell(this, '${encodedValue}')">${displayValue}</td>`;
                     });
                     table += "</tr>";
                 });
@@ -698,14 +698,12 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                             value === null
                                 ? '<span class="null-value">NULL</span>'
                                 : value;
-                        const escapedValue = String(
-                            value === null ? "NULL" : value
-                        )
-                            .replace(/'/g, "\\'")
-                            .replace(/"/g, '\\"');
+                        const encodedValue = encodeURIComponent(
+                            String(value === null ? "NULL" : value)
+                        );
                         html += `<tr>
                         <td>${column}</td>
-                        <td onclick="copyTableCell(this, '${escapedValue}')">${displayValue}</td>
+                        <td onclick="copyTableCell(this, '${encodedValue}')">${displayValue}</td>
                     </tr>`;
                     });
 
@@ -715,12 +713,30 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
                 container.innerHTML = html;
             }
 
-            function copyTableCell(cell, value) {
-                // 确保值不为 null
-                const textValue = value === null ? "NULL" : value;
+            function copyTableCell(cell, encodedValue) {
+                try {
+                    // 解码值
+                    const textValue = decodeURIComponent(encodedValue);
 
-                // 复制到剪贴板
-                copyToClipboard(textValue, "Cell content copied to clipboard");
+                    // 复制到剪贴板
+                    copyToClipboard(
+                        textValue,
+                        "Cell content copied to clipboard"
+                    );
+
+                    // 添加点击反馈效果
+                    cell.style.backgroundColor =
+                        "var(--vscode-editor-selectionBackground)";
+                    setTimeout(() => {
+                        cell.style.backgroundColor = "";
+                    }, 200);
+                } catch (error) {
+                    vscode.postMessage({
+                        command: "showInfo",
+                        text: "Failed to copy cell content: " + error.message,
+                        timeout: 1000,
+                    });
+                }
             }
 
             function formatBytes(bytes) {
@@ -919,17 +935,26 @@ SELECT * FROM {{table}} LIMIT 10;</textarea
             }
 
             function copyToClipboard(text, successMessage) {
-                const textarea = document.createElement("textarea");
-                textarea.value = text;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand("copy");
-                document.body.removeChild(textarea);
+                try {
+                    const textarea = document.createElement("textarea");
+                    textarea.value = text;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    const success = document.execCommand("copy");
+                    document.body.removeChild(textarea);
 
-                vscode.postMessage({
-                    command: "showInfo",
-                    text: successMessage,
-                });
+                    if (!success) {
+                        throw new Error("execCommand copy failed");
+                    }
+
+                    vscode.postMessage({
+                        command: "showInfo",
+                        text: successMessage,
+                        timeout: 1000,
+                    });
+                } catch (error) {
+                    throw error;
+                }
             }
 
             function downloadFile(content, filename, contentType) {
